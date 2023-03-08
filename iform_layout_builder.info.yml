@@ -1,6 +1,7 @@
 name: 'Indicia layout builder'
 description: 'Allows Indicia recording forms to be built visually with Layout Builder.'
 core: 8.x
+core_version_requirement: ^8 || ^9
 version: "8.x-1.0"
 package: "Indicia"
 configure: iform_layout_builder.settings
