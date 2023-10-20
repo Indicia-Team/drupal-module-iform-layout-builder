@@ -66,7 +66,7 @@ function iform_layout_builder_modules_installed($modules) {
     ];
 
     foreach ($config_files as $config_id) {
-      $raw_data = file_get_contents(drupal_get_path('module', 'iform_layout_builder') . '/config/after_install/' . $config_id . '.yml');
+      $raw_data = file_get_contents(\Drupal::service('extension.list.module')->getPath('iform_layout_builder') . '/config/after_install/' . $config_id . '.yml');
       \Drupal::configFactory()->getEditable($config_id)
         ->setData(Yaml::decode($raw_data))
         ->save();
@@ -164,16 +164,22 @@ function iform_layout_builder_form_node_iform_layout_builder_form_layout_builder
  * On layout form submit, record that the survey structure needs checking.
  */
 function iform_layout_builder_layout_submit(&$form, FormStateInterface $form_state) {
-  // As we've made edits, for this user we want to switch to
-  // list_termlists_terms rather than the cached version so they see updates
-  // instantly.
-  $_SESSION['iform_layout_builder-no_termlist_cache'] = TRUE;
-  // Also reload local cached copy of warehouse data.
-  $_SESSION['iform-refreshcache'] = TRUE;
-  $entity = $form_state->getFormObject()->getEntity();
-  $surveyStructure = new SurveyStructure();
-  $surveyStructure->checkAttrsExists($entity);
-  $entity->save();
+  try {
+    // As we've made edits, for this user we want to switch to
+    // list_termlists_terms rather than the cached version so they see updates
+    // instantly.
+    $_SESSION['iform_layout_builder-no_termlist_cache'] = TRUE;
+    // Also reload local cached copy of warehouse data.
+    $_SESSION['iform-refreshcache'] = TRUE;
+    $entity = $form_state->getFormObject()->getEntity();
+    $surveyStructure = new SurveyStructure();
+    $surveyStructure->checkAttrsExists($entity);
+    $entity->save();
+  }
+  catch (Exception $e) {
+    \Drupal::logger('iform_layout_builder')->error($e->getMessage());
+    \Drupal::messenger()->addError(t('An error occurred whilst saving the form layout. More information is available in the Drupal logs.'));
+  }
 }
 
 function iform_layout_builder_alter_data_entry_form(&$form, FormStateInterface $form_state, $inserting) {

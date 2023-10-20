@@ -2,7 +2,7 @@
 
 namespace Drupal\iform_layout_builder\Indicia;
 
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\Entity\Node;
 
 class SurveyStructure extends IndiciaRestClient {
 
@@ -13,7 +13,7 @@ class SurveyStructure extends IndiciaRestClient {
    *
    * Called on form layout save.
    *
-   * @param obj $entity
+   * @param Node $entity
    *   Node entity containing the form.
    */
   public function createSurvey($entity) {
@@ -154,16 +154,16 @@ class SurveyStructure extends IndiciaRestClient {
     else {
       // POST to create.
       $response = $this->getRestResponse($endpoint, 'POST', $submission);
-      $resourceId = $response['response']['values']['id'];
     }
     if (!in_array($response['httpCode'], [200, 201])) {
-      \Drupal::logger('iform_layout_builder')->error('Failed to link an attribute to a survey dataset.');
+      \Drupal::logger('iform_layout_builder')->error('Failed to link an attribute to a survey dataset. ' . var_export($response, TRUE));
       \Drupal::messenger()->addMessage(t(
         'Failed to link an attribute to a survey dataset: @status: @msg.',
         ['@status' => $response['response']['status'], '@msg' => $response['response']['message']]
       ));
       throw new \Exception('Failed to link an attribute to a survey dataset.');
     }
+    $resourceId = $response['response']['values']['id'];
     return $resourceId;
   }
 
@@ -209,6 +209,9 @@ class SurveyStructure extends IndiciaRestClient {
 
   /**
    * Ensures that all attributes required by an entity exist.
+   *
+   * @param Node $entity
+   *   Drupal entity.
    */
   public function checkAttrsExists($entity) {
     if (empty($entity->field_survey_id->value)) {
@@ -374,6 +377,10 @@ class SurveyStructure extends IndiciaRestClient {
    */
   public function getExistingCustomAttributesForSurvey($entity, $survey_id) {
     $response = $this->getRestResponse("{$entity}_attributes", 'GET', NULL, ['public'=>'f', 'restrict_to_survey_id' => $survey_id]);
+    if ($response['httpCode'] !== 200) {
+      \Drupal::logger('iform_layout_builder')->error('Invalid response from GET attributes request: ' . var_export($response, TRUE));
+      throw new \Exception(t('Invalid response from GET attributes request'));
+    }
     $r = [];
     foreach ($response['response'] as $attr) {
       $r[$attr['values']['id']] = $attr['values'];

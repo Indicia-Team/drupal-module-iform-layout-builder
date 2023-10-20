@@ -2,8 +2,7 @@
 
 namespace Drupal\iform_layout_builder\Indicia;
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\simple_oauth\Controller\Oauth2Token;
+use Drupal\Core\StreamWrapper\PrivateStream;
 
 class IndiciaRestClient {
 
@@ -14,17 +13,15 @@ class IndiciaRestClient {
    *   Auth header to sign the request with a JWT token.
    */
   protected function getAuthHeader() {
-    $keyFile = \Drupal::service('file_system')->realpath("private://") . '/rsa_private.pem';
+    $keyFile = PrivateStream::basePath() . '/rsa_private.pem';
     if (!file_exists($keyFile)) {
-      \Drupal::logger('iform_layout_builder')->error('Incorrect configuration - Iform layout builder needs a private key file in the Drupal private file system.');
       \Drupal::messenger()->addError(t('Incorrect configuration - Iform layout builder needs a private key file in the Drupal private file system.'));
-      return FALSE;
+      throw new \Exception(t("Incorrect configuration - Iform layout builder needs a private key file in the Drupal private file system. Expected to find $keyFile."));
     }
     $userId = hostsite_get_user_field('indicia_user_id');
     if (!$userId) {
-      \Drupal::logger('iform_layout_builder')->error('User not linked to warehouse so REST API cannot be used by iform_layout_builder.');
-      \Drupal::messenger()->addError(t('Before continuing, please ensure your first name and surname are complete on your user profile.'));
-      return FALSE;
+      \Drupal::messenger()->addError(t('User not linked to warehouse so REST API cannot be used by iform_layout_builder.'));
+      throw new \Exception(t('Before continuing, please ensure your first name and surname are complete on your user profile.'));
     }
     $privateKey = file_get_contents($keyFile);
     $payload = [
