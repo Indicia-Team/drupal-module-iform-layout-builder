@@ -1,0 +1,9 @@
+id: indicia_form_layout_config
+plugin_id: indicia_form_layout
+granularity: method
+configuration:
+  GET:
+    supported_formats:
+      - json
+    supported_auth:
+      - cookie
