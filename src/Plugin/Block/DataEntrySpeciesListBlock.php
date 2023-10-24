@@ -25,8 +25,14 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
       'helpText' => [
         '#title' => 'Help text',
         '#description' => 'Tip shown beneath the control.',
-      ]
-    ], $this->listConfigFormControls);
+      ],
+    ], $this->listConfigFormControls, [
+      'spatialRefPerRow' => [
+        '#title' => 'Spatial ref. per row',
+        '#description' => 'Tick to allow each species row to optionally have its own unique spatial reference for a precise location.',
+        '#type' => 'checkbox',
+      ],
+    ]);
   }
 
   /**
@@ -43,8 +49,13 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
     iform_load_helpers(['data_entry_helper']);
     $blockConfig = $this->getConfiguration();
     $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
+    $ctrlOptions['spatialRefPerRow'] = isset($blockConfig["option_spatialRefPerRow"]) && $blockConfig["option_spatialRefPerRow"] === 1;
+    $ctrlOptions['subSamplePerRow'] = $ctrlOptions['spatialRefPerRow'];
+    $ctrlOptions['speciesControlToUseSubSamples'] = $ctrlOptions['spatialRefPerRow'];
+    $ctrlOptions['spatialRefPerRowUseFullscreenMap'] = $ctrlOptions['spatialRefPerRow'];
     try {
       $preloader = $this->getPreloadScratchpadListControl($blockConfig, $ctrlOptions);
+      \Drupal::logger('iform_layout_builder')->error(var_export($ctrlOptions, TRUE));
       $ctrl = $preloader . \data_entry_helper::species_checklist($ctrlOptions);
     }
     catch (\Exception $e) {

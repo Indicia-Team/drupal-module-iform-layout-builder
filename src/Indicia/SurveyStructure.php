@@ -339,6 +339,10 @@ class SurveyStructure extends IndiciaRestClient {
         throw $e;
       }
     }
+    if ($response['httpCode'] !== 200) {
+      \Drupal::logger('iform_layout_builder')->error('Invalid response from GET surveys request: ' . var_export($response, TRUE));
+      throw new \Exception(t('Invalid response from GET surveys request'));
+    }
     $r = [];
     foreach ($response['response'] as $survey) {
       $r[$survey['values']['id']] = $survey['values']['title'];
@@ -357,10 +361,15 @@ class SurveyStructure extends IndiciaRestClient {
    */
   public function getExistingCustomAttributeCaptions($entity) {
     $response = $this->getRestResponse("{$entity}_attributes", 'GET', NULL, ['public'=>'f']);
+    if ($response['httpCode'] !== 200) {
+      \Drupal::logger('iform_layout_builder')->error('Invalid response from GET attributes request: ' . var_export($response, TRUE));
+      throw new \Exception(t('Invalid response from GET attributes request'));
+    }
     $r = [];
     foreach ($response['response'] as $attr) {
       $r[$attr['values']['id']] = $attr['values']['caption'];
     }
+    asort($r);
     return $r;
   }
 

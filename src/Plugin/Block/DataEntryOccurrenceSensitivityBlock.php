@@ -29,11 +29,12 @@ class DataEntryOccurrenceSensitivityBlock extends IndiciaControlBlockBase {
           '2000' => '2km',
           '10000' => '10km',
           '100000' => '100km',
-        ]
+        ],
+        '#empty_value' => '',
       ],
       'lockable' => [
         '#title' => 'Lock icon',
-        '#title' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
+        '#description' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
         '#type' => 'checkbox',
       ],
     ];
