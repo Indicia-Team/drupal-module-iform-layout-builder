@@ -55,7 +55,6 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
     $ctrlOptions['spatialRefPerRowUseFullscreenMap'] = $ctrlOptions['spatialRefPerRow'];
     try {
       $preloader = $this->getPreloadScratchpadListControl($blockConfig, $ctrlOptions);
-      \Drupal::logger('iform_layout_builder')->error(var_export($ctrlOptions, TRUE));
       $ctrl = $preloader . \data_entry_helper::species_checklist($ctrlOptions);
     }
     catch (\Exception $e) {
