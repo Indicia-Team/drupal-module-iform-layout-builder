@@ -43,14 +43,9 @@ abstract class IndiciaLayoutBuilderBlockBase extends BlockBase implements Contai
   protected function getCurrentNode() {
     // If a normal call, the RouteMatch service is the most reliable way.
     $node = $this->routeMatch->getParameter('node');
-    if (!$node) {
-      \Drupal::logger('iform_layout_builder')->notice('Route match failed to find node');
-      \Drupal::logger('iform_layout_builder')->notice('Referrer: ' . $_SERVER['HTTP_REFERER']);
-    }
     if (!$node && !empty($_SERVER['HTTP_REFERER'])) {
       // Use referrer if inside a layout builder AJAX call.
       if (preg_match('/node\/(?P<nid>\d+)\//', $_SERVER['HTTP_REFERER'], $matches)) {
-        \Drupal::logger('iform_layout_builder')->notice('Preg match: ' . var_export($matches, TRUE));
         $nid = $matches['nid'];
         $node = \Drupal\node\Entity\Node::load($nid);
       }
