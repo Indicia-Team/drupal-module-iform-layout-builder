@@ -152,7 +152,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         'table' => 'termlists_term',
         'extraParams' => $readAuth + [
           'view' => 'cache',
-          'termlist_id' => $fieldConfig['option_existing_termlist_id'],
+          'termlist_id' => $fieldConfig['existing_termlist_id'],
           'orderby' => 'sort_order, term',
           'preferred' => 't',
           'columns' => 'id,term,parent_id,preferred_image_path',

@@ -247,7 +247,7 @@ class SurveyStructure extends IndiciaRestClient {
             $blockConfig['option_existing_termlist_id'] = $attr['values']['termlist_id'];
             // Also store the attributes_website link ID, required when
             // updating.
-            $blockConfig['option_existing_attributes_website_id'] = $createResponse['sample_attributes_websites'][0]['values']['id'];
+            $blockConfig['option_existing_attributes_website_id'] = $createResponse["{$attrType}_attributes_websites"][0]['values']['id'];
             $component->setConfiguration($blockConfig);
             \Drupal::messenger()->addMessage(t(
               'A new @type attribute has been created on the warehouse with ID @id for the @label control.',
