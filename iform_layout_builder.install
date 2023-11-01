@@ -12,3 +12,14 @@ function iform_layout_builder_update_8801() {
   $active_storage = \Drupal::service('config.storage');
   $active_storage->write('rest.resource.indicia_form_layout_config', $source->read('rest.resource.indicia_form_layout_config'));
 }
+
+/**
+ * Adds configuration for the RESTful resource for reading a survey form list.
+ */
+function iform_layout_builder_update_8802() {
+  $path = \Drupal::service('extension.path.resolver')->getPath('module', 'iform_layout_builder') . '/config/install';
+  $source = new FileStorage($path);
+  /** @var \Drupal\Core\Config\StorageInterface $active_storage */
+  $active_storage = \Drupal::service('config.storage');
+  $active_storage->write('rest.resource.indicia_form_layout_list_config', $source->read('rest.resource.indicia_form_layout_list_config'));
+}

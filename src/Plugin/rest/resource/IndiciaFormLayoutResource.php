@@ -7,7 +7,7 @@ use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
 
 /**
- * Provides a resource for Iform_layout_builder forms.
+ * Provides a resource for single Iform_layout_builder forms.
  *
  * @RestResource(
  *   id = "indicia_form_layout",
@@ -35,8 +35,16 @@ class IndiciaFormLayoutResource extends ResourceBase {
       'title' => $node->getTitle(),
       'survey_id' => $node->field_survey_id->value,
       'type' => $this->getFormTypeLabel($node),
-      'input_form' => \Drupal::service('path_alias.manager')->getAliasByPath("/node/$id"),
+      'subtype' => NULL,
+      'data' => [
+        'sample:survey_id' => $node->field_survey_id->value,
+        'sample:input_form' => trim(\Drupal::service('path_alias.manager')->getAliasByPath("/node/$id"), '/'),
+      ],
     ];
+    $description = $node->body->value;
+    if ($description) {
+      $response['description'] = $description;
+    }
     // Optional properties.
     if ($node->body->value) {
       $response['description'] = $node->body->value;
@@ -64,60 +72,64 @@ class IndiciaFormLayoutResource extends ResourceBase {
           $regions[$asArray['region']] = [];
         }
         $fieldConfig = [
-          'class' => $this->getClassFromBlockId($blockConfig['id']),
+          'type' => $this->getTypeFromBlockId($blockConfig['id']),
           'field_name' => $this->getControlFieldName($blockConfig)
         ];
+        if (!empty($blockConfig['option_data_type'])) {
+          $blockConfig['data_type'] = $this->getVerboseDataType($blockConfig['option_data_type']);
+        }
         $ctrlType = $this->getControlType($blockConfig);
         if ($ctrlType) {
           $fieldConfig['control_type'] = $ctrlType;
         }
-        unset($blockConfig['id']);
-        unset($blockConfig['context_mapping']);
-        unset($blockConfig['provider']);
-        unset($blockConfig['label']);
-        unset($blockConfig['label_display']);
-        unset($blockConfig['mode']);
-        unset($blockConfig['option_existing_attributes_website_id']);
-        unset($blockConfig['option_create_or_existing']);
-        unset($blockConfig['option_lookup_options_terms']);
-        unset($blockConfig['option_lookup_options_control']);
-        unset($blockConfig['option_text_options_control']);
-        if (!isset($blockConfig['option_data_type']) || $blockConfig['option_data_type'] !== 'L') {
-          unset($blockConfig['option_existing_termlist_id']);
-        }
-        if (!isset($blockConfig['option_data_type']) || !in_array($blockConfig['option_data_type'], ['I', 'F'])) {
-          unset($blockConfig['option_number_options_min']);
-          unset($blockConfig['option_number_options_max']);
-        }
-        // Tidy - remove option_* prefixes from block config.
+        $this->cleanupUnwantedProperties($blockConfig);
+        // Tidy - remove option_* or option_existint_* prefixes from block config.
         foreach ($blockConfig as $key => $value) {
-          $fieldConfig[preg_replace('/^option_/', '', $key)] = $value;
+          $camel = preg_replace('/^option_(existing_)?/', '', $key);
+          $snake = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $camel));
+          $fieldConfig[$snake] = $value;
         }
         $this->addTermsToFieldConfig($fieldConfig);
         // Remove empties.
         $fieldConfig = array_filter($fieldConfig, fn($value) => !is_null($value) && $value !== '');
         // Add control to grid, or top level of form as appropriate.
-        if ($fieldConfig['class'] === 'occurrence_custom_attribute' && $response['type'] !== 'Single species form') {
+        if ($fieldConfig['type'] === 'occurrence_custom_attribute' && $response['type'] !== 'Single species form') {
           $gridCustomAttributes[$weight] = $fieldConfig;
         }
         else {
           $regions[$asArray['region']][$weight] = $fieldConfig;
         }
         // Additional info at top level for species list options.
-        if ($fieldConfig['spatialRefPerRow'] ?? 0 === 1) {
-          $response['type'] .= '|optional spatial ref per species';
+        if ($fieldConfig['spatial_ref_per_row'] ?? 0 === 1) {
+          $response['subtype'] = 'optional_spatial_ref_per_occurrence';
         }
       }
       foreach ($regions as &$controlList) {
         foreach ($controlList as &$fieldConfig) {
           // If a species grid, attach the controls list which has to be done
           // at the end.
-          if (in_array($fieldConfig['class'], ['species_list', 'species_multiplace'])) {
+          if (in_array($fieldConfig['type'], ['species_list', 'species_multiplace'])) {
+            $fieldConfig['preload_species_list'] = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $fieldConfig['species_list_mode']));
             $fieldConfig['controls'] = array_merge(
               $this->getGridControls($fieldConfig, FALSE),
               array_values($gridCustomAttributes),
               $this->getGridControls($fieldConfig, TRUE),
             );
+            unset($fieldConfig['absence_column']);
+            unset($fieldConfig['comments_column']);
+            unset($fieldConfig['media_column']);
+            unset($fieldConfig['sensitivity_column']);
+            unset($fieldConfig['spatial_ref_per_row']);
+            unset($fieldConfig['species_list_mode']);
+            if ($fieldConfig['preload_species_list'] === 'empty') {
+              unset($fieldConfig['row_inclusion_mode']);
+              unset($fieldConfig['allow_additional_species']);
+            }
+            elseif ($fieldConfig['preload_species_list'] === 'scratchpad_list') {
+              unset($fieldConfig['species_to_add_list_type']);
+            }
+            // @todo More tidying of non-required species checklist properties depending on the mode.
+            // @todo Attach the scratchpad lists.
           }
         }
         if (empty($_GET['layout'])) {
@@ -133,6 +145,10 @@ class IndiciaFormLayoutResource extends ResourceBase {
         ];
       }
     }
+    // Cleanup if unnecessary.
+    if (empty($response['subtype'])) {
+      unset($response['subtype']);
+    }
     return new ResourceResponse($response);
   }
 
@@ -144,7 +160,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   lookup control.
    */
   private function addTermsToFieldConfig(array &$fieldConfig) {
-    if (isset($fieldConfig['data_type']) && $fieldConfig['data_type'] === 'L' && !empty($fieldConfig['existing_termlist_id'])) {
+    if (isset($fieldConfig['data_type']) && $fieldConfig['data_type'] === 'lookup' && !empty($fieldConfig['existing_termlist_id'])) {
       \iform_load_helpers(['helper_base']);
       $conn = \iform_get_connection_details();
       $readAuth = \helper_base::get_read_auth($conn['website_id'], $conn['password']);
@@ -158,12 +174,42 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'columns' => 'id,term,parent_id,preferred_image_path',
         ],
       ));
+      foreach ($terms as &$term) {
+        if (empty($term['parent_id'])) {
+          unset($term['parent_id']);
+        }
+        if (empty($term['preferred_image_path'])) {
+          unset($term['preferred_image_path']);
+        }
+      }
       $fieldConfig['terms'] = $terms;
     }
   }
 
+  private function cleanupUnwantedProperties(array &$blockConfig) {
+    unset($blockConfig['id']);
+    unset($blockConfig['context_mapping']);
+    unset($blockConfig['provider']);
+    unset($blockConfig['label']);
+    unset($blockConfig['label_display']);
+    unset($blockConfig['mode']);
+    unset($blockConfig['option_create_or_existing']);
+    unset($blockConfig['option_data_type']);
+    unset($blockConfig['option_existing_attributes_website_id']);
+    unset($blockConfig['option_lookup_options_terms']);
+    unset($blockConfig['option_lookup_options_control']);
+    unset($blockConfig['option_text_options_control']);
+    if (!isset($blockConfig['data_type']) || $blockConfig['data_type'] !== 'lookup') {
+      unset($blockConfig['option_existing_termlist_id']);
+    }
+    if (!isset($blockConfig['data_type']) || !in_array($blockConfig['data_type'], ['integer', 'float'])) {
+      unset($blockConfig['option_number_options_min']);
+      unset($blockConfig['option_number_options_max']);
+    }
+  }
+
   /**
-   * Obtains a control class from the Drupal block ID.
+   * Obtains a control type from the Drupal block ID.
    *
    * Simply removes the prefix and suffix from the block name to leave the
    * relevant bit.
@@ -174,7 +220,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    * @return string
    *   Control class name.
    */
-  private function getClassFromBlockId($id) {
+  private function getTypeFromBlockId($id) {
     return preg_replace(['/^data_entry_/', '/_block$/'], '', $id);
   }
 
@@ -188,27 +234,30 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   Control type name, or NULL if not applicable.
    */
   private function getControlType(array $blockConfig) {
-    if (!empty($blockConfig['option_data_type'])) {
-      switch ($blockConfig['option_data_type']) {
-        case 'T':
+    if (!empty($blockConfig['data_type'])) {
+      switch ($blockConfig['data_type']) {
+        case 'text':
           return empty($blockConfig['option_text_options_control']) ? 'text' : str_replace('text_input', 'text', $blockConfig['option_text_options_control']);
 
-        case 'B':
+        case 'boolean':
           return 'checkbox';
 
-        case 'L':
+        case 'lookup':
           return empty($blockConfig['option_lookup_options_control']) ? 'select' : $blockConfig['option_lookup_options_control'];
 
-        case 'I':
-        case 'F':
+        case 'float':
+        case 'integer':
           return 'number';
+
+        case 'date':
+          return 'date';
 
         default:
           return NULL;
       }
     }
     else {
-      switch ($this->getClassFromBlockId($blockConfig['id'])) {
+      switch ($this->getTypeFromBlockId($blockConfig['id'])) {
         case 'date_picker':
           return 'date';
 
@@ -244,19 +293,10 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   Verbose label for the type of data entry form.
    */
   private function getFormTypeLabel(Node $node) {
-    switch ($node->field_form_type->value) {
-      case 'single':
-        return 'Single species form';
-
-      case 'list':
-        return 'Species list form';
-
-      case 'multiplace':
-        return 'Species at multiple places form';
-
-      default:
-        Throw new \Exception(t('Unrecognised form type @type', ['@type' => $node->field_form_type->value]));
+    if (!in_array($node->field_form_type->value, ['single', 'list', 'multiplace'])) {
+      Throw new \Exception(t('Unrecognised form type @type', ['@type' => $node->field_form_type->value]));
     }
+    return $node->field_form_type->value . '_species_form';
   }
 
   /**
@@ -269,7 +309,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   Indicia field name, e.g. occurrence:comment.
    */
   private function getControlFieldName(array $blockConfig) {
-    switch ($this->getClassFromBlockId($blockConfig['id'])) {
+    switch ($this->getTypeFromBlockId($blockConfig['id'])) {
       case 'date_picker':
         return 'sample:date';
 
@@ -305,7 +345,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       case 'species_list':
       case 'species_multiplace':
       case 'species_single':
-        return 'occurrence:taxa_taxon_list_id';
+        return NULL;
 
       default:
         // Should not occur.
@@ -313,44 +353,56 @@ class IndiciaFormLayoutResource extends ResourceBase {
     }
   }
 
+  private function getVerboseDataType($dataTypeCode) {
+    $mappings = [
+      'I' => 'integer',
+      'F' => 'float',
+      'T' => 'text',
+      'D' => 'date',
+      'V' => 'vague_date',
+      'B' => 'boolean',
+    ];
+    return $mappings[$dataTypeCode] ?? $dataTypeCode;
+  }
+
   private function getGridControls(array $fieldConfig, $after) {
     $r = [];
-    if (in_array($fieldConfig['class'], ['species_list', 'species_multiplace'])) {
+    if (in_array($fieldConfig['type'], ['species_list', 'species_multiplace'])) {
       if (!$after) {
         $r[] = [
-          'class' => 'species',
+          'type' => 'species',
           'field_name' => 'occurrence:taxa_taxon_list_id',
           'control_type' => 'autocomplete',
           'label' => 'Species',
         ];
       }
-      if (!$after && !empty($fieldConfig['absenceColumn'])) {
+      if (!$after && !empty($fieldConfig['absence_column'])) {
         $r[] = [
-          'class' => 'absence',
+          'type' => 'absence',
           'field_name' => 'occurrence:comment:zero_abundance',
           'control_type' => 'checkbox',
           'label' => 'Absence',
         ];
       }
-      if ($after && !empty($fieldConfig['spatialRefPerRow'])) {
+      if ($after && !empty($fieldConfig['spatial_ref_per_row'])) {
         $r[] = [
-          'class' => 'spatial_ref',
+          'type' => 'spatial_ref',
           'field_name' => 'sample:entered_sref',
           'control_type' => 'text',
           'label' => 'Spatial ref',
         ];
       }
-      if ($after && !empty($fieldConfig['commentsColumn'])) {
+      if ($after && !empty($fieldConfig['comments_column'])) {
         $r[] = [
-          'class' => 'occurrence_comment',
+          'type' => 'occurrence_comment',
           'field_name' => 'occurrence:comment',
           'control_type' => 'textarea',
           'label' => 'Comment',
         ];
       }
-      if ($after && !empty($fieldConfig['sensitivityColumn'])) {
+      if ($after && !empty($fieldConfig['sensitivity_column'])) {
         $r[] = [
-          'class' => 'sensitivity',
+          'type' => 'sensitivity',
           'field_name' => 'occurrence:sensitivity_precision',
           'control_type' => 'select',
           'label' => 'Sensitivity',
@@ -363,9 +415,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
           ],
         ];
       }
-      if ($after && !empty($fieldConfig['mediaColumn'])) {
+      if ($after && !empty($fieldConfig['media_column'])) {
         $r[] = [
-          'class' => 'occurrence_photos',
+          'type' => 'occurrence_photos',
           'label' => 'Photos',
         ];
       }
