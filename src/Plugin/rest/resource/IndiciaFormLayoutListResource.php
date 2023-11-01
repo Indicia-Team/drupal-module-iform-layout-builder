@@ -33,12 +33,15 @@ class IndiciaFormLayoutListResource extends ResourceBase {
       ->condition('type', 'iform_layout_builder_form')
       ->execute();
     $nodes = Node::loadMultiple($nids);
+    // Maybe a better way to do this by asking IndiciaFormLayoutResource for its path?
+    $href = \Drupal::request()->getSchemeAndHttpHost() . $this->routes()->get('indicia_form_layout_list.GET')->getPath();
     foreach ($nodes as $node) {
       $formDetail = [
         'id' => $node->id(),
         'title' => $node->getTitle(),
         'survey_id' => $node->field_survey_id->value,
         'type' => $node->field_form_type->value . '_species_form',
+        'href' => "$href/" . $node->id(),
       ];
       $description = $node->body->value;
       if ($description) {
