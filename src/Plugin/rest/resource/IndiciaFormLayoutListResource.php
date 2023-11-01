@@ -13,7 +13,7 @@ use Drupal\rest\ResourceResponse;
  *   id = "indicia_form_layout_list",
  *   label = @Translation("Indicia form layout list"),
  *   uri_paths = {
- *     "canonical" = "/iform_layout_builder/indicia_form_layout"
+ *     "canonical" = "/iform_layout_builder/form_layout"
  *   }
  * )
  */
