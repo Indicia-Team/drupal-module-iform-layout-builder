@@ -82,7 +82,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         if ($ctrlType) {
           $fieldConfig['control_type'] = $ctrlType;
         }
-        $this->cleanupUnwantedProperties($blockConfig);
+        $this->cleanupUnwantedBlockConfigProperties($blockConfig);
         // Tidy - remove option_* or option_existint_* prefixes from block config.
         foreach ($blockConfig as $key => $value) {
           $camel = preg_replace('/^option_(existing_)?/', '', $key);
@@ -109,29 +109,11 @@ class IndiciaFormLayoutResource extends ResourceBase {
           // If a species grid, attach the controls list which has to be done
           // at the end.
           if (in_array($fieldConfig['type'], ['species_list', 'species_multiplace'])) {
-            $fieldConfig['preload_species_list'] = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $fieldConfig['species_list_mode']));
-            $fieldConfig['controls'] = array_merge(
-              $this->getGridControls($fieldConfig, FALSE),
-              array_values($gridCustomAttributes),
-              $this->getGridControls($fieldConfig, TRUE),
-            );
-            unset($fieldConfig['absence_column']);
-            unset($fieldConfig['comments_column']);
-            unset($fieldConfig['media_column']);
-            unset($fieldConfig['sensitivity_column']);
-            unset($fieldConfig['spatial_ref_per_row']);
-            unset($fieldConfig['species_list_mode']);
-            if ($fieldConfig['preload_species_list'] === 'empty') {
-              unset($fieldConfig['row_inclusion_mode']);
-              unset($fieldConfig['allow_additional_species']);
-            }
-            elseif ($fieldConfig['preload_species_list'] === 'scratchpad_list') {
-              unset($fieldConfig['species_to_add_list_type']);
-            }
-            // @todo More tidying of non-required species checklist properties depending on the mode.
-            // @todo Attach the scratchpad lists.
+            $this->formatSpeciesListControl($fieldConfig, $gridCustomAttributes);
           }
         }
+        // If not returning layout, then just append the controls to the end,
+        // sorted in order within each section.
         if (empty($_GET['layout'])) {
           ksort($controlList);
           $response['controls'] = array_merge($response['controls'], array_values($controlList));
@@ -186,7 +168,87 @@ class IndiciaFormLayoutResource extends ResourceBase {
     }
   }
 
-  private function cleanupUnwantedProperties(array &$blockConfig) {
+  /**
+   * Format the configuration returned for a species list control.
+   *
+   * @param array $fieldConfig
+   *   Configuration for the control which will be modified.
+   * @param array $gridCustomAttributes
+   *   Occurrence custom attributes loaded from elsewhere on the layout that
+   *   need to be inserted into the grid.
+   */
+  private function formatSpeciesListControl(array &$fieldConfig, $gridCustomAttributes) {
+    if ($fieldConfig['species_list_mode'] === 'scratchpadList') {
+      // @todo Preload the scratchpad list
+      $fieldConfig['preload_taxa'] = $this->getScratchpadTaxonNames($fieldConfig['preloaded_scratchpad_list_id'], TRUE);
+      // Unset irrelevant options for this mode.
+      unset($fieldConfig['species_to_add_list_type']);
+      unset($fieldConfig['additional_species_scratchpad_list_id']);
+      // Tidy as bool.
+      $fieldConfig['allow_additional_species'] = !empty($fieldConfig['allow_additional_species']);
+    }
+    else {
+      // Start with an empty list.
+      if ($fieldConfig['species_to_add_list_type'] === 'scratchpadList') {
+        // @todo Attach the loaded scratchpad list to the species input control in gridCustomAttributes.
+        $speciesExtraInfo = [
+          'limit_taxa_to' => $this->getScratchpadTaxonNames($fieldConfig['additional_species_scratchpad_list_id'], FALSE)
+        ];
+      }
+      // Unset irrelevant options for this mode.
+      unset($fieldConfig['row_inclusion_mode']);
+      unset($fieldConfig['allow_additional_species']);
+      unset($fieldConfig['preloaded_scratchpad_list_id']);
+    }
+    $fieldConfig['controls'] = array_merge(
+      $this->getGridControls($fieldConfig, FALSE, $speciesExtraInfo),
+      array_values($gridCustomAttributes),
+      $this->getGridControls($fieldConfig, TRUE),
+    );
+    unset($fieldConfig['absence_column']);
+    unset($fieldConfig['comments_column']);
+    unset($fieldConfig['media_column']);
+    unset($fieldConfig['sensitivity_column']);
+    unset($fieldConfig['spatial_ref_per_row']);
+    unset($fieldConfig['species_list_mode']);
+  }
+
+  /**
+   * Retrieve the full list of taxon names for a scratchpad list.
+   *
+   * @param bool $preferred
+   *   True to limit to only return preferred names.
+   *
+   * @return array
+   *   List of taxon name data loaded from the warehouse.
+   */
+  private function getScratchpadTaxonNames($scratchpadId, $preferred) {
+    \iform_load_helpers(['report_helper']);
+    $connection = iform_get_connection_details();
+    $readAuth = \report_helper::get_read_auth($connection['website_id'], $connection['password']);
+    return \report_helper::get_report_data([
+      'dataSource' => 'library/taxa/taxa_for_scratchpad',
+      'extraParams' => [
+        'scratchpad_list_id' => $scratchpadId,
+        // @todo Allow configuration of language codes.
+        'language_codes' => 'lat,eng',
+        'preferred' => $preferred ? 't' : 'f',
+        // @todo Extra filter options, e.g. include children.
+      ],
+      'readAuth' => $readAuth,
+    ]);
+  }
+
+  /**
+   * Clean up unwanted block configuration.
+   *
+   * Removes properties from a blocks' config that we don't need to pass to the
+   * API.
+   *
+   * @param array $blockConfig
+   *   Loaded block config which will be modified by removal of properties.
+   */
+  private function cleanupUnwantedBlockConfigProperties(array &$blockConfig) {
     unset($blockConfig['id']);
     unset($blockConfig['context_mapping']);
     unset($blockConfig['provider']);
@@ -365,16 +427,16 @@ class IndiciaFormLayoutResource extends ResourceBase {
     return $mappings[$dataTypeCode] ?? $dataTypeCode;
   }
 
-  private function getGridControls(array $fieldConfig, $after) {
+  private function getGridControls(array $fieldConfig, $after, $speciesExtraInfo = []) {
     $r = [];
     if (in_array($fieldConfig['type'], ['species_list', 'species_multiplace'])) {
       if (!$after) {
-        $r[] = [
+        $r[] = array_merge([
           'type' => 'species',
           'field_name' => 'occurrence:taxa_taxon_list_id',
           'control_type' => 'autocomplete',
           'label' => 'Species',
-        ];
+        ], $speciesExtraInfo);
       }
       if (!$after && !empty($fieldConfig['absence_column'])) {
         $r[] = [
