@@ -23,14 +23,16 @@ class IndiciaFormLayoutResource extends ResourceBase {
    * Responds to GET requests.
    *
    * @param int $id
-   *   The ID of the node to fetch, or returns a summary of all form nodes if
-   *   not specified.
+   *   The ID of the node to fetch.
    *
    * @return \Drupal\rest\ResourceResponse
    *   The response containing the form object.
    */
-  public function get($id = NULL) {
+  public function get($id) {
     $node = node::load($id);
+    if (!$node || $node->getType() !== 'iform_layout_builder') {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found');
+    }
     $response = [
       'title' => $node->getTitle(),
       'survey_id' => $node->field_survey_id->value,
