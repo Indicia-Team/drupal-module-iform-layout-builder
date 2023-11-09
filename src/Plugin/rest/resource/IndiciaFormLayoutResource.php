@@ -221,7 +221,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       unset($fieldConfig['preloaded_scratchpad_list_id']);
     }
     $fieldConfig['controls'] = array_merge(
-      $this->getGridControls($fieldConfig, FALSE, $speciesExtraInfo),
+      $this->getGridControls($fieldConfig, FALSE, $speciesExtraInfo ?? []),
       array_values($gridCustomAttributes),
       $this->getGridControls($fieldConfig, TRUE),
     );
