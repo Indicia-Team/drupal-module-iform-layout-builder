@@ -30,7 +30,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    */
   public function get($id) {
     $node = node::load($id);
-    if (!$node || $node->getType() !== 'iform_layout_builder') {
+    if (!$node || $node->getType() !== 'iform_layout_builder_form') {
       throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found');
     }
     $response = [
@@ -51,12 +51,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
     if ($node->body->value) {
       $response['description'] = $node->body->value;
     }
-    if (empty($_GET['layout'])) {
-      $response['controls'] = [];
-    }
-    else {
-      $response['form_sections'] = [];
-    }
+    $formSections = [];
     $sections = $node->get('layout_builder__layout')->getSections();
     $gridCustomAttributes = [];
     foreach ($sections as $section) {
@@ -70,12 +65,12 @@ class IndiciaFormLayoutResource extends ResourceBase {
           continue;
         }
         $weight = (int) $asArray['weight'];
-        if (!empty($_GET['layout']) && !isset($regions[$asArray['region']])) {
+        if (!isset($regions[$asArray['region']])) {
           $regions[$asArray['region']] = [];
         }
         $fieldConfig = [
           'type' => $this->getTypeFromBlockId($blockConfig['id']),
-          'field_name' => $this->getControlFieldName($blockConfig)
+          'field_name' => $this->getControlFieldName($blockConfig),
         ];
         if (!empty($blockConfig['option_data_type'])) {
           $blockConfig['data_type'] = $this->getVerboseDataType($blockConfig['option_data_type']);
@@ -85,13 +80,24 @@ class IndiciaFormLayoutResource extends ResourceBase {
           $fieldConfig['control_type'] = $ctrlType;
         }
         $this->cleanupUnwantedBlockConfigProperties($blockConfig);
-        // Tidy - remove option_* or option_existint_* prefixes from block config.
         foreach ($blockConfig as $key => $value) {
+          // Tidy - remove option_* or option_existing_* prefixes from block config.
           $camel = preg_replace('/^option_(existing_)?/', '', $key);
           $snake = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $camel));
-          $fieldConfig[$snake] = $value;
+          // Convert Drupal 0/1 to true/false for booleans.
+          if (in_array($snake, ['required', 'lockable', 'allow_vague_dates']) && in_array($value, [0, 1, '0', '1'])) {
+            $fieldConfig[$snake] = (integer) $value === 1;
+          }
+          else {
+            $fieldConfig[$snake] = $value;
+          }
         }
-        $this->addTermsToFieldConfig($fieldConfig);
+        if ($fieldConfig['type'] !== 'species_list' && !isset($fieldConfig['required'])) {
+          $fieldConfig['required'] = $this->getIsRequired($fieldConfig);
+        }
+        if (isset($blockConfig['data_type']) && $blockConfig['data_type'] === 'lookup') {
+          $this->addTermsToFieldConfig($fieldConfig);
+        }
         // Remove empties.
         $fieldConfig = array_filter($fieldConfig, fn($value) => !is_null($value) && $value !== '');
         // Add control to grid, or top level of form as appropriate.
@@ -106,32 +112,44 @@ class IndiciaFormLayoutResource extends ResourceBase {
           $response['subtype'] = 'optional_spatial_ref_per_occurrence';
         }
       }
-      foreach ($regions as &$controlList) {
-        foreach ($controlList as &$fieldConfig) {
+      $formSections[] = [
+        'layout_type' => $section->getLayoutId(),
+        'label' => $section->getLayoutSettings()['label'],
+        'components' => $regions,
+      ];
+    }
+    foreach ($formSections as &$section) {
+      foreach ($section['components'] as &$regionControlList) {
+        foreach ($regionControlList as &$fieldConfig) {
           // If a species grid, attach the controls list which has to be done
           // at the end.
           if (in_array($fieldConfig['type'], ['species_list', 'species_multiplace'])) {
             $this->formatSpeciesListControl($fieldConfig, $gridCustomAttributes);
           }
         }
-        // If not returning layout, then just append the controls to the end,
-        // sorted in order within each section.
-        if (empty($_GET['layout'])) {
-          ksort($controlList);
-          $response['controls'] = array_merge($response['controls'], array_values($controlList));
-        }
-      }
-      if (!empty($_GET['layout'])) {
-        $response['form_sections'][] = [
-          'layout_type' => $section->getLayoutId(),
-          'label' => $section->getLayoutSettings()['label'],
-          'components' => $regions,
-        ];
       }
     }
     // Cleanup if unnecessary.
     if (empty($response['subtype'])) {
       unset($response['subtype']);
+    }
+
+    // Flatten response to ordered list of controls.
+    $allControls = [];
+    foreach ($formSections as &$section) {
+      foreach ($section['components'] as &$regionControlList) {
+        ksort($regionControlList);
+        if (empty($_GET['layout'])) {
+          $allControls = array_merge($allControls, $regionControlList);
+        }
+      }
+    }
+    if (empty($_GET['layout'])) {
+      $response['controls'] = $allControls;
+    }
+    else {
+      // Layout response keeps structure.
+      $response['form_sections'] = $formSections;
     }
     return new ResourceResponse($response);
   }
@@ -270,6 +288,10 @@ class IndiciaFormLayoutResource extends ResourceBase {
       unset($blockConfig['option_number_options_min']);
       unset($blockConfig['option_number_options_max']);
     }
+  }
+
+  private function getIsRequired(array $blockConfig) {
+    return in_array($blockConfig['type'], ['date', 'spatial_ref']);
   }
 
   /**
@@ -438,6 +460,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'occurrence:taxa_taxon_list_id',
           'control_type' => 'autocomplete',
           'label' => 'Species',
+          'required' => true,
         ], $speciesExtraInfo);
       }
       if (!$after && !empty($fieldConfig['absence_column'])) {
@@ -446,6 +469,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'occurrence:comment:zero_abundance',
           'control_type' => 'checkbox',
           'label' => 'Absence',
+          'required' => false,
         ];
       }
       if ($after && !empty($fieldConfig['spatial_ref_per_row'])) {
@@ -454,6 +478,8 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'sample:entered_sref',
           'control_type' => 'text',
           'label' => 'Spatial ref',
+          'required' => false,
+
         ];
       }
       if ($after && !empty($fieldConfig['comments_column'])) {
@@ -462,6 +488,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'occurrence:comment',
           'control_type' => 'textarea',
           'label' => 'Comment',
+          'required' => false,
         ];
       }
       if ($after && !empty($fieldConfig['sensitivity_column'])) {
@@ -477,12 +504,14 @@ class IndiciaFormLayoutResource extends ResourceBase {
             '10000' => 'Blur to 10km',
             '100000' => 'Blur to 100km',
           ],
+          'required' => false,
         ];
       }
       if ($after && !empty($fieldConfig['media_column'])) {
         $r[] = [
           'type' => 'occurrence_photos',
           'label' => 'Photos',
+          'required' => false,
         ];
       }
     }
