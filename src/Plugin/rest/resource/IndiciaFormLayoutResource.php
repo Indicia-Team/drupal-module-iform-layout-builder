@@ -33,7 +33,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
     if (!$node || $node->getType() !== 'iform_layout_builder_form') {
       throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found');
     }
-    $response = [
+    $data = [
       'title' => $node->getTitle(),
       'survey_id' => $node->field_survey_id->value,
       'type' => $this->getFormTypeLabel($node),
@@ -45,11 +45,11 @@ class IndiciaFormLayoutResource extends ResourceBase {
     ];
     $description = $node->body->value;
     if ($description) {
-      $response['description'] = $description;
+      $data['description'] = $description;
     }
     // Optional properties.
     if ($node->body->value) {
-      $response['description'] = $node->body->value;
+      $data['description'] = $node->body->value;
     }
     $formSections = [];
     $sections = $node->get('layout_builder__layout')->getSections();
@@ -101,7 +101,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         // Remove empties.
         $fieldConfig = array_filter($fieldConfig, fn($value) => !is_null($value) && $value !== '');
         // Add control to grid, or top level of form as appropriate.
-        if ($fieldConfig['type'] === 'occurrence_custom_attribute' && $response['type'] !== 'Single species form') {
+        if ($fieldConfig['type'] === 'occurrence_custom_attribute' && $data['type'] !== 'Single species form') {
           $gridCustomAttributes[$weight] = $fieldConfig;
         }
         else {
@@ -109,7 +109,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         }
         // Additional info at top level for species list options.
         if ($fieldConfig['spatial_ref_per_row'] ?? 0 === 1) {
-          $response['subtype'] = 'optional_spatial_ref_per_occurrence';
+          $data['subtype'] = 'optional_spatial_ref_per_occurrence';
         }
       }
       $formSections[] = [
@@ -130,8 +130,8 @@ class IndiciaFormLayoutResource extends ResourceBase {
       }
     }
     // Cleanup if unnecessary.
-    if (empty($response['subtype'])) {
-      unset($response['subtype']);
+    if (empty($data['subtype'])) {
+      unset($data['subtype']);
     }
 
     // Flatten response to ordered list of controls.
@@ -145,13 +145,19 @@ class IndiciaFormLayoutResource extends ResourceBase {
       }
     }
     if (empty($_GET['layout'])) {
-      $response['controls'] = $allControls;
+      $data['controls'] = $allControls;
     }
     else {
       // Layout response keeps structure.
-      $response['form_sections'] = $formSections;
+      $data['form_sections'] = $formSections;
     }
-    return new ResourceResponse($response);
+    $response = new ResourceResponse($data);
+    // Update if node updated.
+    $response->addCacheableDependency($node);
+    // Update if query parameters changed.
+    $response->getCacheableMetadata()->addCacheContexts(['url.query_args:taxon_attributes']);
+    $response->getCacheableMetadata()->addCacheContexts(['url.query_args:layout']);
+    return $response;
   }
 
   /**
@@ -253,6 +259,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         // @todo Allow configuration of language codes.
         'language_codes' => 'lat,eng',
         'preferred' => $preferred ? 't' : 'f',
+        'taxattrs' => preg_match('/^[0-9]+(,[0-9]+)*$/', $_GET['taxon_attributes'] ?? '') ? $_GET['taxon_attributes'] : '',
         // @todo Extra filter options, e.g. include children.
       ],
       'readAuth' => $readAuth,
