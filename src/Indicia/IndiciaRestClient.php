@@ -16,12 +16,13 @@ class IndiciaRestClient {
     $keyFile = PrivateStream::basePath() . '/rsa_private.pem';
     if (!file_exists($keyFile)) {
       \Drupal::messenger()->addError(t('Incorrect configuration - Iform layout builder needs a private key file in the Drupal private file system.'));
-      throw new \Exception(t("Incorrect configuration - Iform layout builder needs a private key file in the Drupal private file system. Expected to find $keyFile."));
+      return '';
     }
     $userId = hostsite_get_user_field('indicia_user_id');
     if (!$userId) {
       \Drupal::messenger()->addError(t('User not linked to warehouse so REST API cannot be used by iform_layout_builder.'));
-      throw new \Exception(t('Before continuing, please ensure your first name and surname are complete on your user profile.'));
+      \Drupal::messenger()->addError(t('Before continuing, please ensure your first name and surname are complete on your user profile.'));
+      return '';
     }
     $privateKey = file_get_contents($keyFile);
     $payload = [

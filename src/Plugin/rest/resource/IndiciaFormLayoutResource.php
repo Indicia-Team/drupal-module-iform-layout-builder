@@ -35,14 +35,23 @@ class IndiciaFormLayoutResource extends ResourceBase {
     }
     $data = [
       'title' => $node->getTitle(),
-      'survey_id' => $node->field_survey_id->value,
+      'survey_id' => (integer) $node->field_survey_id->value,
       'type' => $this->getFormTypeLabel($node),
       'subtype' => NULL,
       'data' => [
-        'sample:survey_id' => $node->field_survey_id->value,
+        'sample:survey_id' => (integer) $node->field_survey_id->value,
         'sample:input_form' => trim(\Drupal::service('path_alias.manager')->getAliasByPath("/node/$id"), '/'),
       ],
+      'created_by_uid' => (integer) $node->getOwnerID(),
+      'created_by_id' => (integer) $node->getOwner()->field_indicia_user_id->value,
+      'created_on' => \Drupal::service('date.formatter')->format($node->getCreatedTime(), 'custom', 'c'),
     ];
+    if ($node->getEntityType()->isRevisionable()) {
+      $data['revision_id'] = (integer) $node->getRevisionId();
+      $data['updated_by_uid'] = (integer) $node->getRevisionUser()->id();
+      $data['updated_by_id'] = (integer) $node->getRevisionUser()->field_indicia_user_id->value;
+      $data['updated_on'] = \Drupal::service('date.formatter')->format($node->getChangedTime(), 'custom', 'c');
+    }
     $description = $node->body->value;
     if ($description) {
       $data['description'] = $description;
