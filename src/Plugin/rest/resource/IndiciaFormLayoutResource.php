@@ -463,6 +463,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       'D' => 'date',
       'V' => 'vague_date',
       'B' => 'boolean',
+      'L' => 'lookup',
     ];
     return $mappings[$dataTypeCode] ?? $dataTypeCode;
   }
