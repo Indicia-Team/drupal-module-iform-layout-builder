@@ -52,13 +52,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
       $data['updated_by_id'] = (integer) $node->getRevisionUser()->field_indicia_user_id->value;
       $data['updated_on'] = \Drupal::service('date.formatter')->format($node->getChangedTime(), 'custom', 'c');
     }
-    $description = $node->body->value;
-    if ($description) {
-      $data['description'] = $description;
-    }
     // Optional properties.
     if ($node->body->value) {
-      $data['description'] = $node->body->value;
+      $data['description'] = strip_tags($node->body->value);
     }
     $formSections = [];
     $sections = $node->get('layout_builder__layout')->getSections();
