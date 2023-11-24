@@ -104,7 +104,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         if ($fieldConfig['type'] !== 'species_list' && !isset($fieldConfig['required'])) {
           $fieldConfig['required'] = $this->getIsRequired($fieldConfig);
         }
-        if (isset($blockConfig['data_type']) && $blockConfig['data_type'] === 'lookup') {
+        if (isset($fieldConfig['data_type']) && $fieldConfig['data_type'] === 'lookup') {
           $this->addTermsToFieldConfig($fieldConfig);
         }
         // Remove empties.
@@ -177,7 +177,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   lookup control.
    */
   private function addTermsToFieldConfig(array &$fieldConfig) {
-    if (isset($fieldConfig['data_type']) && $fieldConfig['data_type'] === 'lookup' && !empty($fieldConfig['existing_termlist_id'])) {
+    if (isset($fieldConfig['data_type']) && $fieldConfig['data_type'] === 'lookup' && !empty($fieldConfig['termlist_id'])) {
       \iform_load_helpers(['helper_base']);
       $conn = \iform_get_connection_details();
       $readAuth = \helper_base::get_read_auth($conn['website_id'], $conn['password']);
@@ -185,7 +185,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         'table' => 'termlists_term',
         'extraParams' => $readAuth + [
           'view' => 'cache',
-          'termlist_id' => $fieldConfig['existing_termlist_id'],
+          'termlist_id' => $fieldConfig['termlist_id'],
           'orderby' => 'sort_order, term',
           'preferred' => 't',
           'columns' => 'id,term,parent_id,preferred_image_path',
