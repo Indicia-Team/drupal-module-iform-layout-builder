@@ -10,7 +10,7 @@ function iform_layout_builder_update_8801() {
   $source = new FileStorage($path);
   /** @var \Drupal\Core\Config\StorageInterface $active_storage */
   $active_storage = \Drupal::service('config.storage');
-  $active_storage->write('rest.resource.indicia_form_layout_config', $source->read('rest.resource.indicia_form_layout_config'));
+  $active_storage->write('rest.resource.indicia_form_layout', $source->read('rest.resource.indicia_form_layout'));
 }
 
 /**
@@ -21,5 +21,5 @@ function iform_layout_builder_update_8802() {
   $source = new FileStorage($path);
   /** @var \Drupal\Core\Config\StorageInterface $active_storage */
   $active_storage = \Drupal::service('config.storage');
-  $active_storage->write('rest.resource.indicia_form_layout_list_config', $source->read('rest.resource.indicia_form_layout_list_config'));
+  $active_storage->write('rest.resource.indicia_form_layout_list', $source->read('rest.resource.indicia_form_layout_list'));
 }
