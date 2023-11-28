@@ -217,13 +217,24 @@ class IndiciaFormLayoutResource extends ResourceBase {
       unset($fieldConfig['additional_species_scratchpad_list_id']);
       // Tidy as bool.
       $fieldConfig['allow_additional_species'] = !empty($fieldConfig['allow_additional_species']);
+      if ($fieldConfig['allow_additional_species']) {
+        $speciesExtraInfo = [
+          'taxon_list_id' => \Drupal::config('iform.settings')->get('master_checklist_id'),
+        ];
+      }
     }
     else {
       // Start with an empty list.
+      $fieldConfig['allow_additional_species'] = TRUE;
       if ($fieldConfig['species_to_add_list_type'] === 'scratchpadList') {
         // @todo Attach the loaded scratchpad list to the species input control in gridCustomAttributes.
         $speciesExtraInfo = [
-          'limit_taxa_to' => $this->getScratchpadTaxonNames($fieldConfig['additional_species_scratchpad_list_id'], FALSE)
+          'limit_taxa_to' => $this->getScratchpadTaxonNames($fieldConfig['additional_species_scratchpad_list_id'], FALSE),
+        ];
+      }
+      elseif ($fieldConfig['species_to_add_list_type'] === 'all') {
+        $speciesExtraInfo = [
+          'taxon_list_id' => \Drupal::config('iform.settings')->get('master_checklist_id'),
         ];
       }
       // Unset irrelevant options for this mode.
