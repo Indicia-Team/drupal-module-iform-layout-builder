@@ -5,6 +5,10 @@ namespace Drupal\iform_layout_builder\Plugin\rest\resource;
 use Drupal\node\Entity\Node;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Psr\Log\LoggerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\path_alias\AliasManagerInterface;
 
 /**
  * Provides a resource for single Iform_layout_builder forms.
@@ -19,6 +23,30 @@ use Drupal\rest\ResourceResponse;
  */
 class IndiciaFormLayoutResource extends ResourceBase {
 
+  private $entityTypeManager;
+
+  private $aliasManager;
+
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $logger, EntityTypeManagerInterface $entityTypeManager, AliasManagerInterface $aliasManager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $logger);
+    $this->serializerFormats = $serializer_formats;
+    $this->logger = $logger;
+    $this->entityTypeManager = $entityTypeManager;
+    $this->aliasManager = $aliasManager;
+  }
+
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->getParameter('serializer.formats'),
+      $container->get('logger.factory')->get('rest'),
+      $container->get('entity_type.manager'),
+      $container->get('path_alias.manager'),
+    );
+  }
+
   /**
    * Responds to GET requests.
    *
@@ -29,7 +57,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   The response containing the form object.
    */
   public function get($id) {
-    $node = node::load($id);
+    $node = $this->entityTypeManager->getStorage('node')->load($id);
     if (!$node || $node->getType() !== 'iform_layout_builder_form') {
       throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found');
     }
@@ -40,7 +68,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       'subtype' => NULL,
       'data' => [
         'sample:survey_id' => (integer) $node->field_survey_id->value,
-        'sample:input_form' => trim(\Drupal::service('path_alias.manager')->getAliasByPath("/node/$id"), '/'),
+        'sample:input_form' => trim($this->aliasManager->getAliasByPath("/node/$id"), '/'),
       ],
       'created_by_uid' => (integer) $node->getOwnerID(),
       'created_by_id' => (integer) $node->getOwner()->field_indicia_user_id->value,
@@ -102,6 +130,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
         }
         if (isset($fieldConfig['data_type']) && $fieldConfig['data_type'] === 'lookup') {
           $this->addTermsToFieldConfig($fieldConfig);
+        }
+        if ($fieldConfig['type'] === 'species_single') {
+          $this->formatSingleSpeciesControl($fieldConfig);
         }
         // Remove empties.
         $fieldConfig = array_filter($fieldConfig, fn($value) => !is_null($value) && $value !== '');
@@ -197,6 +228,27 @@ class IndiciaFormLayoutResource extends ResourceBase {
       }
       $fieldConfig['terms'] = $terms;
     }
+  }
+
+  /**
+   * Format the configuration returned for a single species control.
+   *
+   * @param array $fieldConfig
+   *   Configuration for the control which will be modified.
+   */
+  private function formatSingleSpeciesControl(array &$fieldConfig) {
+    if (!empty($fieldConfig['scratchpad_list_id'])) {
+      $fieldConfig['limit_taxa_to'] = $this->getScratchpadTaxonNames($fieldConfig['scratchpad_list_id'], TRUE);
+      // If only a single species available, convert to a hidden input.
+      if (count($fieldConfig['limit_taxa_to']) === 1) {
+        $fieldConfig = [
+          'type' => 'species_single',
+          'control_type' => 'hidden',
+          'default_value' => (integer) $fieldConfig['limit_taxa_to'][0]['taxa_taxon_list_id'],
+        ];
+      }
+    }
+    $fieldConfig['field_name'] = 'occurrence:taxa_taxon_list_id';
   }
 
   /**

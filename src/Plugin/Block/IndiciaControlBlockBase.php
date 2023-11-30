@@ -67,6 +67,7 @@ abstract class IndiciaControlBlockBase extends IndiciaLayoutBuilderBlockBase {
               'table' => $value['table'],
               'orderby' => $value['captionField'],
               'extraParams' => $readAuth + $extraParams,
+              'nocache' => TRUE,
             ]);
             foreach ($data as $item) {
               $lookupOptions[$item[$value['valueField']]] = $this->t($item[$value['captionField']]);
