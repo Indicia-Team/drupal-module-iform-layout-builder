@@ -57,7 +57,8 @@ class IndiciaFormLayoutListResource extends ResourceBase {
     iform_load_helpers(['report_helper']);
     $data = [];
     $nids = \Drupal::entityQuery('node')
-      ->accessCheck(TRUE)
+      // accessCheck FALSE - see https://drupal.stackexchange.com/questions/251864/logicexception-the-controller-result-claims-to-be-providing-relevant-cache-meta.
+      ->accessCheck(FALSE)
       ->condition('status', 1)
       ->condition('type', 'iform_layout_builder_form')
       ->execute();
@@ -100,7 +101,8 @@ class IndiciaFormLayoutListResource extends ResourceBase {
     $readAuth = \report_helper::get_read_auth($conn['website_id'], $conn['password']);
     $pageData = \report_helper::get_report_data([
       'dataSource' => 'library/group_pages/group_pages_for_user',
-      'extraParams' => $readAuth + [
+      'readAuth' => $readAuth,
+      'extraParams' => [
         'currentUser' => $user->field_indicia_user_id->value,
       ],
     ]);
