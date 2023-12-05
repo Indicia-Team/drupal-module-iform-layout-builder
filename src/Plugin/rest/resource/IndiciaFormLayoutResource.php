@@ -608,7 +608,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'occurrence:taxa_taxon_list_id',
           'control_type' => 'autocomplete',
           'label' => 'Species',
-          'required' => true,
+          'validation' => [
+            'required' => TRUE,
+          ],
         ], $speciesExtraInfo);
       }
       if (!$after && !empty($fieldConfig['absence_column'])) {
@@ -617,7 +619,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'occurrence:comment:zero_abundance',
           'control_type' => 'checkbox',
           'label' => 'Absence',
-          'required' => false,
+          'validation' => [
+            'required' => FALSE,
+          ],
         ];
       }
       if ($after && !empty($fieldConfig['spatial_ref_per_row'])) {
@@ -626,7 +630,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'sample:entered_sref',
           'control_type' => 'text',
           'label' => 'Spatial ref',
-          'required' => false,
+          'validation' => [
+            'required' => FALSE,
+          ],
         ];
       }
       if ($after && !empty($fieldConfig['comments_column'])) {
@@ -635,7 +641,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'field_name' => 'occurrence:comment',
           'control_type' => 'textarea',
           'label' => 'Comment',
-          'required' => false,
+          'validation' => [
+            'required' => FALSE,
+          ],
         ];
       }
       if ($after && !empty($fieldConfig['sensitivity_column'])) {
@@ -651,14 +659,18 @@ class IndiciaFormLayoutResource extends ResourceBase {
             '10000' => 'Blur to 10km',
             '100000' => 'Blur to 100km',
           ],
-          'required' => false,
+          'validation' => [
+            'required' => FALSE,
+          ],
         ];
       }
       if ($after && !empty($fieldConfig['media_column'])) {
         $r[] = [
           'type' => 'occurrence_photos',
           'label' => 'Photos',
-          'required' => false,
+          'validation' => [
+            'required' => FALSE,
+          ],
         ];
       }
     }
