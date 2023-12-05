@@ -96,10 +96,8 @@ class SurveyStructure extends IndiciaRestClient {
       \Drupal::logger('iform_layout_builder')->error('Submission: ' . var_export($submission, TRUE));
       \Drupal::logger('iform_layout_builder')->error('Response: ' . var_export($response, TRUE));
       \Drupal::logger('iform_layout_builder')->error('BlockConfig: ' . var_export($blockConfig, TRUE));
-      \Drupal::messenger()->addMessage(t(
-        'Attribute creation failed: @status: @msg.',
-        ['@status' => $response['response']['status'], '@msg' => $response['response']['message']]
-      ));
+      \Drupal::messenger()->addError(t('Attribute creation failed. Please fix the following error then save the layout again to create the attribute.'));
+      \Drupal::messenger()->addError($response['response']['status'] . ': ' . $response['response']['message']);
     }
     return $response['response'];
   }
@@ -240,23 +238,25 @@ class SurveyStructure extends IndiciaRestClient {
           if ($blockConfig['option_create_or_existing'] === 'new' || $blockConfig['option_existing_attribute_id'] === NULL) {
             // Create a new attribute, which will also link to the survey.
             $createResponse = $this->createAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
-            $fetch = $this->getRestResponse($createResponse['href'], 'GET');
-            $attr = $fetch['response'];
-            $blockConfig['option_create_or_existing'] = 'existing';
-            $blockConfig['option_existing_attribute_id'] = $attr['values']['id'];
-            $blockConfig['option_existing_termlist_id'] = $attr['values']['termlist_id'];
-            // Also store the attributes_website link ID, required when
-            // updating.
-            $blockConfig['option_existing_attributes_website_id'] = $createResponse["{$attrType}_attributes_websites"][0]['values']['id'];
-            $component->setConfiguration($blockConfig);
-            \Drupal::messenger()->addMessage(t(
-              'A new @type attribute has been created on the warehouse with ID @id for the @label control.',
-              [
-                '@type' => $attrType,
-                '@id' => $attr['values']['id'],
-                '@label' => $blockConfig['option_label'],
-              ]
-            ));
+            if ($createResponse['code'] === 200) {
+              $fetch = $this->getRestResponse($createResponse['href'], 'GET');
+              $attr = $fetch['response'];
+              $blockConfig['option_create_or_existing'] = 'existing';
+              $blockConfig['option_existing_attribute_id'] = $attr['values']['id'];
+              $blockConfig['option_existing_termlist_id'] = $attr['values']['termlist_id'];
+              // Also store the attributes_website link ID, required when
+              // updating.
+              $blockConfig['option_existing_attributes_website_id'] = $createResponse["{$attrType}_attributes_websites"][0]['values']['id'];
+              $component->setConfiguration($blockConfig);
+              \Drupal::messenger()->addMessage(t(
+                'A new @type attribute has been created on the warehouse with ID @id for the @label control.',
+                [
+                  '@type' => $attrType,
+                  '@id' => $attr['values']['id'],
+                  '@label' => $blockConfig['option_label'],
+                ]
+              ));
+            }
           }
           else {
             if (empty($blockConfig['option_data_type'])) {
