@@ -108,10 +108,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         if (!empty($blockConfig['option_data_type'])) {
           $blockConfig['data_type'] = $this->getVerboseDataType($blockConfig['option_data_type']);
         }
-        $ctrlType = $this->getControlType($blockConfig);
-        if ($ctrlType) {
-          $fieldConfig['control_type'] = $ctrlType;
-        }
+        $fieldConfig['control_type'] = $this->getControlType($blockConfig);
         $this->cleanupUnwantedBlockConfigProperties($blockConfig);
         foreach ($blockConfig as $key => $value) {
           // Tidy - remove option_* or option_existing_* prefixes from block config.
@@ -125,8 +122,11 @@ class IndiciaFormLayoutResource extends ResourceBase {
             $fieldConfig[$snake] = $value;
           }
         }
-        if ($fieldConfig['type'] !== 'species_list' && !isset($fieldConfig['required'])) {
-          $fieldConfig['required'] = $this->getIsRequired($fieldConfig);
+        if ($fieldConfig['type'] !== 'species_list') {
+          $fieldConfig['validation'] = [
+            'required' => $this->getIsRequired($fieldConfig),
+          ];
+          unset($fieldConfig['required']);
         }
         if (isset($fieldConfig['data_type']) && $fieldConfig['data_type'] === 'lookup') {
           $this->addTermsToFieldConfig($fieldConfig);
@@ -134,6 +134,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
         if ($fieldConfig['type'] === 'species_single') {
           $this->formatSingleSpeciesControl($fieldConfig);
         }
+        $this->formatAdditionalValidation($fieldConfig);
         // Remove empties.
         $fieldConfig = array_filter($fieldConfig, fn($value) => !is_null($value) && $value !== '');
         // Add control to grid, or top level of form as appropriate.
@@ -141,7 +142,12 @@ class IndiciaFormLayoutResource extends ResourceBase {
           $gridCustomAttributes[$weight] = $fieldConfig;
         }
         else {
-          $regions[$asArray['region']][$weight] = $fieldConfig;
+          // Multiply the weight by 2 to allow space for extra controls, e.g.
+          // if sref requires an sref system control.
+          $regions[$asArray['region']][$weight * 2] = $fieldConfig;
+          if ($fieldConfig['type'] === 'spatial_ref') {
+            $this->addSrefSystemControl($fieldConfig, $regions, $asArray['region'], $weight);
+          }
         }
         // Additional info at top level for species list options.
         if ($fieldConfig['spatial_ref_per_row'] ?? 0 === 1) {
@@ -169,18 +175,17 @@ class IndiciaFormLayoutResource extends ResourceBase {
     if (empty($data['subtype'])) {
       unset($data['subtype']);
     }
-
-    // Flatten response to ordered list of controls.
-    $allControls = [];
-    foreach ($formSections as &$section) {
-      foreach ($section['components'] as &$regionControlList) {
-        ksort($regionControlList);
-        if (empty($_GET['layout'])) {
-          $allControls = array_merge($allControls, $regionControlList);
+    if (empty($_GET['layout'])) {
+      // Flatten response to ordered list of controls.
+      $allControls = [];
+      foreach ($formSections as &$section) {
+        foreach ($section['components'] as &$regionControlList) {
+          ksort($regionControlList);
+          if (empty($_GET['layout'])) {
+            $allControls = array_merge($allControls, $regionControlList);
+          }
         }
       }
-    }
-    if (empty($_GET['layout'])) {
       $data['controls'] = $allControls;
     }
     else {
@@ -194,6 +199,68 @@ class IndiciaFormLayoutResource extends ResourceBase {
     $response->getCacheableMetadata()->addCacheContexts(['url.query_args:taxon_attributes']);
     $response->getCacheableMetadata()->addCacheContexts(['url.query_args:layout']);
     return $response;
+  }
+
+  /**
+   * Format the validation section of a control.
+   *
+   * @param array $fieldConfig
+   *   Configuration of the control being formatted.
+   */
+  private function formatAdditionalValidation(array &$fieldConfig) {
+    if (isset($fieldConfig['number_options_min'])) {
+      $fieldConfig['validation']['min'] = $fieldConfig['number_options_min'];
+      unset($fieldConfig['number_options_min']);
+    }
+    if (isset($fieldConfig['number_options_max'])) {
+      $fieldConfig['validation']['max'] = $fieldConfig['number_options_max'];
+      unset($fieldConfig['number_options_max']);
+    }
+    if ($fieldConfig['type'] === 'date_picker') {
+      $fieldConfig['validation']['allow_future'] = FALSE;
+    }
+  }
+
+  /**
+   * Append a control for the spatial ref system.
+   *
+   * @param array $fieldConfig
+   *   Configuration of the spatial ref field.
+   * @param array $regions
+   *   Regions data for the output, which the control will be inserted into.
+   * @param string $region
+   *   Region name to add the control to.
+   * @param int $weight
+   *   Weight of the spatial ref control, so the system control can go after.
+   */
+  private function addSrefSystemControl(array $fieldConfig, array &$regions, $region, $weight) {
+    $systems = \Drupal::config('iform.settings')->get('spatial_systems');
+    $systemList = explode(',', $systems);
+    if (!empty($fieldConfig['system']) && array_key_exists($fieldConfig['system'], $systemList)) {
+      // Replace array with single chosen value.
+      $systemList = $fieldConfig['system'];
+    }
+    if (count($systemList) === 1) {
+      // Single coordinate system, so embed a hidden.
+      $regions[$region][$weight * 2 + 1] = [
+        'type' => 'spatial_ref_system',
+        'control_type' => 'hidden',
+        'fieldname' => 'sample:entered_sref_system',
+        'default_value' => $systemList[0],
+        'validation' => ['required' => TRUE],
+      ];
+    }
+    elseif (count($systemList) > 1) {
+      // Multiple coordinate systems, so embed a select.
+      $regions[$region][$weight * 2 + 1] = [
+        'type' => 'spatial_ref_system',
+        'control_type' => 'select',
+        'field_name' => 'sample:entered_sref_system',
+        'options' => $systemList,
+        'lockable' => TRUE,
+        'validation' => ['required' => TRUE],
+      ];
+    }
   }
 
   /**
@@ -245,6 +312,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'type' => 'species_single',
           'control_type' => 'hidden',
           'default_value' => (integer) $fieldConfig['limit_taxa_to'][0]['taxa_taxon_list_id'],
+          'required' => TRUE,
         ];
       }
     }
@@ -262,7 +330,6 @@ class IndiciaFormLayoutResource extends ResourceBase {
    */
   private function formatSpeciesListControl(array &$fieldConfig, $gridCustomAttributes) {
     if ($fieldConfig['species_list_mode'] === 'scratchpadList') {
-      // @todo Preload the scratchpad list
       $fieldConfig['preload_taxa'] = $this->getScratchpadTaxonNames($fieldConfig['preloaded_scratchpad_list_id'], TRUE);
       // Unset irrelevant options for this mode.
       unset($fieldConfig['species_to_add_list_type']);
@@ -279,7 +346,8 @@ class IndiciaFormLayoutResource extends ResourceBase {
       // Start with an empty list.
       $fieldConfig['allow_additional_species'] = TRUE;
       if ($fieldConfig['species_to_add_list_type'] === 'scratchpadList') {
-        // @todo Attach the loaded scratchpad list to the species input control in gridCustomAttributes.
+        // Attach the loaded scratchpad list to the species input control in
+        // gridCustomAttributes.
         $speciesExtraInfo = [
           'limit_taxa_to' => $this->getScratchpadTaxonNames($fieldConfig['additional_species_scratchpad_list_id'], FALSE),
         ];
@@ -366,7 +434,11 @@ class IndiciaFormLayoutResource extends ResourceBase {
   }
 
   private function getIsRequired(array $blockConfig) {
-    return in_array($blockConfig['type'], ['date', 'spatial_ref']);
+    return $blockConfig['required'] ?? in_array($blockConfig['type'], [
+      'date_picker',
+      'spatial_ref',
+      'species_single',
+    ]);
   }
 
   /**
@@ -555,7 +627,6 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'control_type' => 'text',
           'label' => 'Spatial ref',
           'required' => false,
-
         ];
       }
       if ($after && !empty($fieldConfig['comments_column'])) {
