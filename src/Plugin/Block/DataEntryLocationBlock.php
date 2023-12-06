@@ -21,6 +21,7 @@ class DataEntryLocationBlock extends IndiciaControlBlockBase {
     return [
       'label' => [
         '#description' => 'Label shown for the form control.',
+        '#default_value' => $this->t('Location'),
       ],
       'helpText' => [
         '#title' => 'Help text',
@@ -28,16 +29,16 @@ class DataEntryLocationBlock extends IndiciaControlBlockBase {
       ],
       'lockable' => [
         '#title' => 'Lock icon',
-        '#title' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
+        '#description' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
         '#type' => 'checkbox',
       ],
       'mode' => [
         '#title' => 'Mode',
         '#type' => 'select',
         '#options' => [
-          'name' => 'Text input for ad-hoc location name',
-          'id_select' => 'A drop-down list of sites',
-          'id_autocomplete' => 'A site search box',
+          'name' => $this->t('Text input for ad-hoc location name'),
+          'id_select' => $this->t('A drop-down list of sites'),
+          'id_autocomplete' => $this->t('A site search box'),
         ],
         '#attributes' => [
           'id' => 'option_mode',

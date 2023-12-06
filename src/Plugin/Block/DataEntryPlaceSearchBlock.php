@@ -22,7 +22,7 @@ class DataEntryPlaceSearchBlock extends IndiciaControlBlockBase {
     return [
       'label' => [
         '#description' => 'Label shown for the form control.',
-        '#default_value' => 'Map search',
+        '#default_value' => $this->t('Map search'),
       ],
       'helpText' => [
         '#title' => 'Help text',

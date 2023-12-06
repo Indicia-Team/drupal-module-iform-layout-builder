@@ -21,7 +21,7 @@ class DataEntrySamplePhotosBlock extends IndiciaPhotoBlockBase {
     return [
       'label' => [
         '#description' => 'Label shown for the form control.',
-        '#default_value' => 'Photos of overall site',
+        '#default_value' => $this->t('Photos of overall site'),
       ],
     ];
   }

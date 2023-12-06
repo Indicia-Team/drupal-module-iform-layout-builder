@@ -21,6 +21,7 @@ class DataEntrySpatialRefBlock extends IndiciaControlBlockBase {
     $fields = [
       'label' => [
         '#description' => 'Label shown for the form control.',
+        '#default_value' => $this->t('Map ref.'),
       ],
       'helpText' => [
         '#title' => 'Help text',
@@ -28,7 +29,7 @@ class DataEntrySpatialRefBlock extends IndiciaControlBlockBase {
       ],
       'lockable' => [
         '#title' => 'Lock icon',
-        '#title' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
+        '#description' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
         '#type' => 'checkbox',
       ],
     ];

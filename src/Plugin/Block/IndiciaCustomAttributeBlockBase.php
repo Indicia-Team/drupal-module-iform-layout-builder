@@ -19,8 +19,8 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
         '#title' => 'Attribute',
         '#type' => 'select',
         '#options' => [
-          'new' => 'Create a new attribute',
-          'existing' => 'Use a pre-existing attribute',
+          'new' => $this->t('Create a new attribute'),
+          'existing' => $this->t('Use a pre-existing attribute'),
         ],
         '#required' => TRUE,
         '#attributes' => [
@@ -64,7 +64,7 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
       ],
       'lockable' => [
         '#title' => 'Lock icon',
-        '#title' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
+        '#description' => 'Enable the lock icon so the control value can be re-used on the next form submission.',
         '#type' => 'checkbox',
       ],
       'suffix' => [
@@ -85,11 +85,11 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
         '#title' => 'Attribute type',
         '#type' => 'select',
         '#options' => [
-          'B' => 'Boolean (on/off)',
-          'I' => 'Integer',
-          'F' => 'Float',
-          'T' => 'Text',
-          'L' => 'Lookup',
+          'B' => $this->t('Boolean (on/off)'),
+          'I' => $this->t('Integer'),
+          'F' => $this->t('Float'),
+          'T' => $this->t('Text'),
+          'L' => $this->t('Lookup'),
         ],
         '#empty_value' => '',
         '#states' => [
@@ -109,8 +109,8 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
         '#title' => 'Text control options',
         '#type' => 'select',
         '#options' => [
-          'text_input' => 'Single line',
-          'textarea' => 'Multiple lines',
+          'text_input' => $this->t('Single line'),
+          'textarea' => $this->t('Multiple lines'),
         ],
         '#states' => [
           // Show this control only if the attribute type Text is selected above.
@@ -157,9 +157,9 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
         '#description' => 'Choose which control to use for presenting the options.',
         '#type' => 'select',
         '#options' => [
-          'select' => 'Drop down (select)',
-          'radio_group' => 'Radio buttons (allows single choice)',
-          'checkbox_group' => 'Checkboxes (allows multiple choices)'
+          'select' => $this->t('Drop down (select)'),
+          'radio_group' => $this->t('Radio buttons (allows single choice)'),
+          'checkbox_group' => $this->t('Checkboxes (allows multiple choices)'),
         ],
         '#states' => [
           // Show this control only if the attribute type Lookup is selected.

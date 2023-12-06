@@ -21,6 +21,7 @@ class DataEntryOccurrenceCommentBlock extends IndiciaControlBlockBase {
     return [
       'label' => [
         '#description' => 'Label shown for the form control.',
+        '#default_value' => 'Record comment',
       ],
       'helpText' => [
         '#title' => 'Help text',

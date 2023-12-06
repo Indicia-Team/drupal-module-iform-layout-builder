@@ -21,6 +21,7 @@ class DataEntrySampleCommentBlock extends IndiciaControlBlockBase {
     return [
       'label' => [
         '#description' => 'Label shown for the form control.',
+        '#default_value' => $this->t('Overall comment'),
       ],
       'helpText' => [
         '#title' => 'Help text',

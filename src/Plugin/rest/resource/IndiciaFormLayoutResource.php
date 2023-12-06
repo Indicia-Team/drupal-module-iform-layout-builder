@@ -245,7 +245,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       $regions[$region][$weight * 2 + 1] = [
         'type' => 'spatial_ref_system',
         'control_type' => 'hidden',
-        'fieldname' => 'sample:entered_sref_system',
+        'field_name' => 'sample:entered_sref_system',
         'default_value' => $systemList[0],
         'validation' => ['required' => TRUE],
       ];

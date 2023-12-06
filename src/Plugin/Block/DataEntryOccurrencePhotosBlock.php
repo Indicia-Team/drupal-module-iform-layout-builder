@@ -21,7 +21,7 @@ class DataEntryOccurrencePhotosBlock extends IndiciaPhotoBlockBase {
     return [
       'label' => [
         '#description' => 'Label shown for the form control.',
-        '#default_value' => 'Photos of the record',
+        '#default_value' => $this->t('Photos of the record'),
       ],
     ];
   }
