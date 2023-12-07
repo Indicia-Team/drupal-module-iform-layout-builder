@@ -36,9 +36,9 @@ class DataEntryLocationBlock extends IndiciaControlBlockBase {
         '#title' => 'Mode',
         '#type' => 'select',
         '#options' => [
-          'name' => $this->t('Text input for ad-hoc location name'),
-          'id_select' => $this->t('A drop-down list of sites'),
-          'id_autocomplete' => $this->t('A site search box'),
+          'name' => 'Text input for ad-hoc location name',
+          'id_select' => 'A drop-down list of sites',
+          'id_autocomplete' => 'A site search box',
         ],
         '#attributes' => [
           'id' => 'option_mode',
