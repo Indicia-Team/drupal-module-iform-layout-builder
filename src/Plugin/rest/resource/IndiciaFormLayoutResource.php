@@ -312,7 +312,10 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   Configuration for the control which will be modified.
    */
   private function formatSingleSpeciesControl(array &$fieldConfig) {
-    if (!empty($fieldConfig['scratchpad_list_id'])) {
+    if (empty($fieldConfig['scratchpad_list_id'])) {
+      $fieldConfig['taxon_list_id'] = (integer) \Drupal::config('iform.settings')->get('master_checklist_id');
+    }
+    else {
       $fieldConfig['limit_taxa_to'] = $this->getScratchpadTaxonNames($fieldConfig['scratchpad_list_id'], TRUE);
       // If only a single species available, convert to a hidden input.
       if (count($fieldConfig['limit_taxa_to']) === 1) {
@@ -346,7 +349,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       $fieldConfig['allow_additional_species'] = !empty($fieldConfig['allow_additional_species']);
       if ($fieldConfig['allow_additional_species']) {
         $speciesExtraInfo = [
-          'taxon_list_id' => \Drupal::config('iform.settings')->get('master_checklist_id'),
+          'taxon_list_id' => (integer) \Drupal::config('iform.settings')->get('master_checklist_id'),
         ];
       }
     }
