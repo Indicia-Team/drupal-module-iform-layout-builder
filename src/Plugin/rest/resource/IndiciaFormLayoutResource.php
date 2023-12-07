@@ -66,10 +66,6 @@ class IndiciaFormLayoutResource extends ResourceBase {
       'survey_id' => (integer) $node->field_survey_id->value,
       'type' => $this->getFormTypeLabel($node),
       'subtype' => NULL,
-      'data' => [
-        'sample:survey_id' => (integer) $node->field_survey_id->value,
-        'sample:input_form' => trim($this->aliasManager->getAliasByPath("/node/$id"), '/'),
-      ],
       'created_by_uid' => (integer) $node->getOwnerID(),
       'created_by_id' => (integer) $node->getOwner()->field_indicia_user_id->value,
       'created_on' => \Drupal::service('date.formatter')->format($node->getCreatedTime(), 'custom', 'c'),
@@ -177,7 +173,19 @@ class IndiciaFormLayoutResource extends ResourceBase {
     }
     if (empty($_GET['layout'])) {
       // Flatten response to ordered list of controls.
-      $allControls = [];
+      $allControls = [
+        [
+          'control_type' => 'hidden',
+          'field_name' => 'sample:survey_id',
+          'default_value' => (integer) $node->field_survey_id->value,
+          'validation' => ['required' => TRUE],
+        ],
+        [
+          'control_type' => 'hidden',
+          'field_name' => 'sample:input_form',
+          'default_value' => trim($this->aliasManager->getAliasByPath("/node/$id"), '/'),
+        ]
+      ];
       foreach ($formSections as &$section) {
         foreach ($section['components'] as &$regionControlList) {
           ksort($regionControlList);
