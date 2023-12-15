@@ -4,6 +4,7 @@ namespace Drupal\iform_layout_builder\Plugin\Block;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
  * Provides a 'Multiplace Species Input' block.
@@ -16,6 +17,22 @@ use Drupal\Core\Form\FormStateInterface;
  * )
  */
 class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
+
+  /**
+   * Constructor.
+   *
+   * Unsets the scratchpad list option for prepopulated species lists as it
+   * doesn't work for multiplace forms.
+   *
+   * @param array $configuration
+   * @param string $plugin_id
+   * @param mixed $plugin_definition
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $route_match);
+    unset($this->listConfigFormControls['speciesListMode']['#options']['scratchpadList']);
+  }
 
   protected function getControlConfigFields() {
     $mapSystems = $this->getAvailableMapSystems();
@@ -53,6 +70,16 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
     $blockConfig = $this->getConfiguration();
     $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
     $ctrlOptions['spatialSystem'] = $blockConfig["option_spatialSystem"];
+    // Copy read auth tokens due to inconsistency in way standard species
+    // checklist and multiplace version accept readAuth.
+    $ctrlOptions['readAuth'] = [
+      'auth_token' => $ctrlOptions['extraParams']['auth_token'],
+      'nonce' => $ctrlOptions['extraParams']['nonce'],
+    ];
+    $node = $this->getCurrentNode();
+    if (!empty($node->field_child_sample_method_id->value)) {
+      $ctrlOptions['sample_method_id'] = $node->field_child_sample_method_id->value;
+    }
     try {
       $preloader = $this->getPreloadScratchpadListControl($blockConfig, $ctrlOptions);
       $ctrl = $preloader . \data_entry_helper::multiple_places_species_checklist($ctrlOptions);
