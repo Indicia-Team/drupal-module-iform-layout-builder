@@ -296,14 +296,15 @@ class SurveyStructure extends IndiciaRestClient {
                   ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : NULL
               );
             }
-            else {
+            elseif (!empty($blockConfig['dirty'])) {
+              // Don't save unless there are no changes.
+              unset($blockConfig['dirty']);
+              $component->setConfiguration($blockConfig);
+              // Block config is for an existing attribute which is already linked.
               $attrsOnLayout[$attrType][] = $blockConfig['option_existing_attribute_id'];
-              // @todo Don't save if there are no changes.
               // If user is has attribute admin rights then update the warehouse
               // attribute caption, description, validation rules etc.
               if ($attrAdmin) {
-                // @todo This may fail to link the attribute if the attribute in use in other surveys.
-                // @todo Also fails even if not!
                 $this->updateAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
               }
               else {

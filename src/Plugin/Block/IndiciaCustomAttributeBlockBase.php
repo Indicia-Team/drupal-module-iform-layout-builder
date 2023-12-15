@@ -197,7 +197,7 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
    * {@inheritdoc}
    */
   public function blockSubmit($form, FormStateInterface $form_state) {
-    $this->setConfigurationValue('option_label', microtime(TRUE));
+    $this->setConfigurationValue('dirty', TRUE);
     parent::blockSubmit($form, $form_state);
   }
 
