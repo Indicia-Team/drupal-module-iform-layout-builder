@@ -67,35 +67,48 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
    */
   public function build() {
     iform_load_helpers(['data_entry_helper']);
-    $blockConfig = $this->getConfiguration();
-    $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
-    $ctrlOptions['spatialSystem'] = $blockConfig["option_spatialSystem"];
-    // Copy read auth tokens due to inconsistency in way standard species
-    // checklist and multiplace version accept readAuth.
-    $ctrlOptions['readAuth'] = [
-      'auth_token' => $ctrlOptions['extraParams']['auth_token'],
-      'nonce' => $ctrlOptions['extraParams']['nonce'],
-    ];
-    $node = $this->getCurrentNode();
-    if (!empty($node->field_child_sample_method_id->value)) {
-      $ctrlOptions['sample_method_id'] = $node->field_child_sample_method_id->value;
+    if ($this->inPreview) {
+      // Control has no UI till map clicked, so needs a placeholder when on
+      // layout builder.
+      $msg = $this->t(
+        'Placeholder for the <strong>multiple places species list</strong> input control.',
+        ['@label' => $blockConfig['option_label'] ?? $blockConfig['option_admin_name']]
+      );
+      global $indicia_templates;
+      $msgBox = str_replace('{message}', $msg, $indicia_templates['messageBox']);
+      return [
+        '#markup' => "<div class=\"iform-layout-builder-block-info\">$msgBox</div>",
+      ];
     }
-    try {
-      $preloader = $this->getPreloadScratchpadListControl($blockConfig, $ctrlOptions);
-      $ctrl = $preloader . \data_entry_helper::multiple_places_species_checklist($ctrlOptions);
+    else {
+      $blockConfig = $this->getConfiguration();
+      $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
+      $ctrlOptions['spatialSystem'] = $blockConfig["option_spatialSystem"];
+      // Copy read auth tokens due to inconsistency in way standard species
+      // checklist and multiplace version accept readAuth.
+      $ctrlOptions['readAuth'] = [
+        'auth_token' => $ctrlOptions['extraParams']['auth_token'],
+        'nonce' => $ctrlOptions['extraParams']['nonce'],
+      ];
+      $node = $this->getCurrentNode();
+      if (!empty($node->field_child_sample_method_id->value)) {
+        $ctrlOptions['sample_method_id'] = $node->field_child_sample_method_id->value;
+      }
+      try {
+        $preloader = $this->getPreloadScratchpadListControl($blockConfig, $ctrlOptions);
+        $ctrl = $preloader . \data_entry_helper::multiple_places_species_checklist($ctrlOptions);
+      }
+      catch (\Exception $e) {
+        $ctrl = '<div class="alert alert-warning">Invalid control: ' . $e->getMessage() . '</div>';
+      }
+      return [
+        '#markup' => new FormattableMarkup($ctrl, []),
+        '#cache' => [
+          // No cache please.
+          'max-age' => 0,
+        ],
+      ];
     }
-    catch (\Exception $e) {
-      $ctrl = '<div class="alert alert-warning">Invalid control: ' . $e->getMessage() . '</div>';
-    }
-    $msgTxt = $this->t('Placeholder for configuration for the multiple places species list control.');
-    $msg = "<div class=\"iform-layout-builder-block-info alert alert-info\">$msgTxt</div>";
-    return [
-      '#markup' => new FormattableMarkup($msg . $ctrl, []),
-      '#cache' => [
-        // No cache please.
-        'max-age' => 0,
-      ],
-    ];
   }
 
 }

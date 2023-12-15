@@ -41,7 +41,7 @@ class DataEntryOccurrenceCustomAttributeBlock extends IndiciaCustomAttributeBloc
     if ($node === NULL) {
       $msg = $this->t(
         'Placeholder for the <strong>@label</strong> input control.',
-        ['@label' => $blockConfig['option_label']]
+        ['@label' => $blockConfig['option_label'] ?? $blockConfig['option_admin_name']]
       );
     }
     elseif ($node->field_form_type->value !== 'single') {

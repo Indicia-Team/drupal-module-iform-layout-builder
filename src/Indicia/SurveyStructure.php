@@ -71,8 +71,14 @@ class SurveyStructure extends IndiciaRestClient {
         ],
       ],
     ];
-    if (!empty($blockConfig['child_sample_attribute'])) {
-      $submission["{$attrEntityName}_attributes_websites"][0]['values']['restrict_to_sample_method_id'] = 22;
+    $node = \Drupal::routeMatch()->getParameter('node');
+    if ($node) {
+      if (empty($blockConfig['option_child_sample_attribute']) && $node->field_sample_method_id->value) {
+        $submission["{$attrEntityName}_attributes_websites"][0]['values']['restrict_to_sample_method_id'] = $node->field_sample_method_id->value;
+      }
+      elseif (!empty($blockConfig['option_child_sample_attribute']) && $node->field_child_sample_method_id->value) {
+        $submission["{$attrEntityName}_attributes_websites"][0]['values']['restrict_to_sample_method_id'] = $node->field_child_sample_method_id->value;
+      }
     }
     if ($blockConfig['option_data_type'] === 'L') {
       if (!empty($blockConfig['option_lookup_options_terms'])) {
@@ -133,7 +139,7 @@ class SurveyStructure extends IndiciaRestClient {
     return $response['response'];
   }
 
-  private function updateAttributeWebsiteLink($attrEntityName, $surveyId, $blockConfig, $existingAttr) {
+  private function updateAttributeWebsiteLink($attrEntityName, $surveyId, array $blockConfig, array $existingAttr) {
     $config = \Drupal::config('iform.settings');
     $submission = [
       'values' => [
@@ -145,11 +151,25 @@ class SurveyStructure extends IndiciaRestClient {
         'validation_rules' => $blockConfig['option_required'] === 1 ? 'required' : NULL,
       ],
     ];
+    $node = \Drupal::routeMatch()->getParameter('node');
+    if ($node) {
+      if (empty($blockConfig['option_child_sample_attribute']) && $node->field_sample_method_id->value) {
+        $submission['values']['restrict_to_sample_method_id'] = $node->field_sample_method_id->value;
+      }
+      elseif (!empty($blockConfig['child_sample_attribute']) && $node->field_child_sample_method_id->value) {
+        $submission['values']['restrict_to_sample_method_id'] = $node->field_child_sample_method_id->value;
+      }
+    }
+    if (!empty($blockConfig['option_child_sample_attribute'])) {
+      if ($node && $node->field_child_sample_method_id->value) {
+        $submission['values']['restrict_to_sample_method_id'] = $node->field_child_sample_method_id->value;
+      }
+    }
     $endpoint = "{$attrEntityName}_attributes_websites";
-    if (!empty($existingAttr) && !empty($existingAttr["{attrEntityName}_attributes_website_id"])) {
+    $existingAttrsWebsiteId = $blockConfig['option_existing_attributes_website_id'] ?? $existingAttr["{attrEntityName}_attributes_website_id"] ?? NULL;
+    if (!empty($existingAttrsWebsiteId)) {
       // PUT to update.
-      $resourceId = $existingAttr["{attrEntityName}_attributes_website_id"];
-      $endpoint .= "/$resourceId";
+      $endpoint .= "/$existingAttrsWebsiteId";
       $response = $this->getRestResponse($endpoint, 'PUT', $submission);
     }
     else {
@@ -293,18 +313,18 @@ class SurveyStructure extends IndiciaRestClient {
                 $entity->field_survey_id->value,
                 $blockConfig,
                 array_key_exists($blockConfig['option_existing_attribute_id'], $existingAttrs[$attrType])
-                  ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : NULL
+                  ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : []
               );
             }
             elseif (!empty($blockConfig['dirty'])) {
-              // Don't save unless there are no changes.
+              // Don't save if there are no changes.
               unset($blockConfig['dirty']);
               $component->setConfiguration($blockConfig);
               // Block config is for an existing attribute which is already linked.
               $attrsOnLayout[$attrType][] = $blockConfig['option_existing_attribute_id'];
               // If user is has attribute admin rights then update the warehouse
               // attribute caption, description, validation rules etc.
-              if ($attrAdmin) {
+              if (false && $attrAdmin) {
                 $this->updateAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
               }
               else {
@@ -316,7 +336,7 @@ class SurveyStructure extends IndiciaRestClient {
                   $entity->field_survey_id->value,
                   $blockConfig,
                   array_key_exists($blockConfig['option_existing_attribute_id'], $existingAttrs[$attrType])
-                    ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : NULL
+                    ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : []
                 );
               }
             }

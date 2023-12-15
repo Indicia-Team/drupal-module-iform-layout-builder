@@ -83,6 +83,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
     $formSections = [];
     $sections = $node->get('layout_builder__layout')->getSections();
     $gridCustomAttributes = [];
+    $subsampleControls = [];
     foreach ($sections as $section) {
       $components = $section->getComponents();
       $regions = [];
@@ -118,7 +119,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
             $fieldConfig[$snake] = $value;
           }
         }
-        if ($fieldConfig['type'] !== 'species_list') {
+        if (!in_array($fieldConfig['type'], ['species_list', 'species_multiplace'])) {
           $fieldConfig['validation'] = [
             'required' => $this->getIsRequired($fieldConfig),
           ];
@@ -134,8 +135,11 @@ class IndiciaFormLayoutResource extends ResourceBase {
         // Remove empties.
         $fieldConfig = array_filter($fieldConfig, fn($value) => !is_null($value) && $value !== '');
         // Add control to grid, or top level of form as appropriate.
-        if ($fieldConfig['type'] === 'occurrence_custom_attribute' && $data['type'] !== 'Single species form') {
+        if ($fieldConfig['type'] === 'occurrence_custom_attribute' && $data['type'] !== 'single_species_form') {
           $gridCustomAttributes[$weight] = $fieldConfig;
+        }
+        elseif ($fieldConfig['type'] === 'sample_custom_attribute' && !empty($fieldConfig['child_sample_attribute']) && $data['type'] === 'multiplace_species_form') {
+          $subsampleControls[$weight] = $fieldConfig;
         }
         else {
           // Multiply the weight by 2 to allow space for extra controls, e.g.
@@ -163,6 +167,24 @@ class IndiciaFormLayoutResource extends ResourceBase {
           // at the end.
           if (in_array($fieldConfig['type'], ['species_list', 'species_multiplace'])) {
             $this->formatSpeciesListControl($fieldConfig, $gridCustomAttributes);
+            // Species multiplace puts list into a sub-sample.
+            if ($fieldConfig['type'] === 'species_multiplace') {
+              $fieldConfig['type'] = 'species_list';
+              $subsampleControls[] = [
+                'control_type' => 'hidden',
+                'spatial_system' => $fieldConfig['spatial_system'],
+                'field_name' => 'sample:sample_method_id',
+                'default_value' => (integer) $node->field_child_sample_method_id->value,
+                'validation' => ['required' => TRUE],
+              ];
+              unset($fieldConfig['spatial_system']);
+              // Move the species list control inside the sub-sample.
+              $subsampleControls[] = $fieldConfig;
+              $fieldConfig = [
+                'type' => 'sub_samples',
+                'controls' => array_values($subsampleControls),
+              ];
+            }
           }
         }
       }
@@ -186,6 +208,14 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'default_value' => trim($this->aliasManager->getAliasByPath("/node/$id"), '/'),
         ]
       ];
+      if ($node->field_sample_method_id->value) {
+        $allControls[] = [
+          'control_type' => 'hidden',
+          'field_name' => 'sample:sample_method_id',
+          'default_value' => (integer) $node->field_sample_method_id->value,
+          'validation' => ['required' => TRUE],
+        ];
+      }
       foreach ($formSections as &$section) {
         foreach ($section['components'] as &$regionControlList) {
           ksort($regionControlList);
@@ -339,7 +369,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   Occurrence custom attributes loaded from elsewhere on the layout that
    *   need to be inserted into the grid.
    */
-  private function formatSpeciesListControl(array &$fieldConfig, $gridCustomAttributes) {
+  private function formatSpeciesListControl(array &$fieldConfig, array $gridCustomAttributes) {
     if ($fieldConfig['species_list_mode'] === 'scratchpadList') {
       $fieldConfig['preload_taxa'] = $this->getScratchpadTaxonNames($fieldConfig['preloaded_scratchpad_list_id'], TRUE);
       // Unset irrelevant options for this mode.

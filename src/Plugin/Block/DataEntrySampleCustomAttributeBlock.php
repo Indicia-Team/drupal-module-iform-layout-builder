@@ -48,14 +48,33 @@ class DataEntrySampleCustomAttributeBlock extends IndiciaCustomAttributeBlockBas
    */
   public function build() {
     $blockConfig = $this->getConfiguration();
-    iform_load_helpers(['data_entry_helper']);
-    return [
-      '#markup' => new FormattableMarkup($this->getControl($blockConfig), []),
-      '#cache' => [
-        // No cache please.
-        'max-age' => 0,
-      ],
-    ];
+    if (empty($blockConfig['option_child_sample_attribute'])) {
+      iform_load_helpers(['data_entry_helper']);
+      return [
+        '#markup' => new FormattableMarkup($this->getControl($blockConfig), []),
+        '#cache' => [
+          // No cache please.
+          'max-age' => 0,
+        ],
+      ];
+    }
+    elseif ($this->inPreview) {
+      // Child sample attribute on layout builders, so needs a placeholder.
+      $msg = $this->t(
+        'Placeholder for the <strong>@label</strong> input control which is shown when adding a child (pinpoint) sample using the multiplace species input control.',
+        ['@label' => $blockConfig['option_label'] ?? $blockConfig['option_admin_name']]
+      );
+      global $indicia_templates;
+      $msgBox = str_replace('{message}', $msg, $indicia_templates['messageBox']);
+      return [
+        '#markup' => "<div class=\"iform-layout-builder-block-info\">$msgBox</div>",
+      ];
+    }
+    else {
+      // On recording form, child sample control will be output automatically
+      // when adding child samples.
+      return [];
+    }
 
   }
 

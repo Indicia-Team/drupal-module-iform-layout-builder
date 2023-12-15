@@ -3,7 +3,7 @@
   var lastLabelSet = '';
 
   function applyLabelIfNotChanged(newLabel) {
-    if ($('[name="settings[option_label]"]').val() === lastLabelSet) {
+    if ($('[name="settings[option_label]"]').val() === '' || $('[name="settings[option_label]"]').val() === lastLabelSet) {
       $('[name="settings[option_label]"]').val(newLabel);
       lastLabelSet = newLabel;
     }
