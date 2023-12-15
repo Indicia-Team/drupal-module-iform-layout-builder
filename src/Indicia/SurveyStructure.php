@@ -71,6 +71,9 @@ class SurveyStructure extends IndiciaRestClient {
         ],
       ],
     ];
+    if (!empty($blockConfig['child_sample_attribute'])) {
+      $submission["{$attrEntityName}_attributes_websites"][0]['values']['restrict_to_sample_method_id'] = 22;
+    }
     if ($blockConfig['option_data_type'] === 'L') {
       if (!empty($blockConfig['option_lookup_options_terms'])) {
         // Pass through the terms to auto-generate. Safe way to split strings by line.
@@ -238,7 +241,7 @@ class SurveyStructure extends IndiciaRestClient {
           if ($blockConfig['option_create_or_existing'] === 'new' || $blockConfig['option_existing_attribute_id'] === NULL) {
             // Create a new attribute, which will also link to the survey.
             $createResponse = $this->createAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
-            if ($createResponse['code'] === 200) {
+            if (!empty($createResponse['href'])) {
               $fetch = $this->getRestResponse($createResponse['href'], 'GET');
               $attr = $fetch['response'];
               $blockConfig['option_create_or_existing'] = 'existing';
@@ -259,6 +262,17 @@ class SurveyStructure extends IndiciaRestClient {
             }
           }
           else {
+            if (empty($blockConfig['option_existing_attributes_website_id'])) {
+              // Fill in the ID if there is an existing attr website link.
+              $existingAttrWebsiteLink = $this->getRestResponse("{$attrType}_attributes_websites", 'GET', NULL, [
+                "{$attrType}_attribute_id" => $blockConfig['option_existing_attribute_id'],
+                "restrict_to_survey_id" => $entity->field_survey_id->value,
+              ]);
+              if (count($existingAttrWebsiteLink['response']) > 0) {
+                $blockConfig['option_existing_attributes_website_id'] = $existingAttrWebsiteLink['response'][0]['values']['id'];
+                $component->setConfiguration($blockConfig);
+              }
+            }
             if (empty($blockConfig['option_data_type'])) {
               // Block is for a new link to an existing attribute, so just need
               // to fill in missing block config from the attribute metadata on
@@ -284,9 +298,12 @@ class SurveyStructure extends IndiciaRestClient {
             }
             else {
               $attrsOnLayout[$attrType][] = $blockConfig['option_existing_attribute_id'];
+              // @todo Don't save if there are no changes.
               // If user is has attribute admin rights then update the warehouse
               // attribute caption, description, validation rules etc.
               if ($attrAdmin) {
+                // @todo This may fail to link the attribute if the attribute in use in other surveys.
+                // @todo Also fails even if not!
                 $this->updateAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
               }
               else {
@@ -309,12 +326,12 @@ class SurveyStructure extends IndiciaRestClient {
     // Now, ensure any attributes that are in the survey but not on the layout
     // (maybe removed) are not required.
     foreach ($existingAttrs['sample'] as $existingAttr) {
-      if (!in_array($existingAttr['id'], $attrsOnLayout['sample']) && strpos($existingAttr['survey_validation_rules'], 'required') !== FALSE) {
+      if (!in_array($existingAttr['id'], $attrsOnLayout['sample']) && strpos($existingAttr['survey_validation_rules'] ?? '', 'required') !== FALSE) {
         $this->ensureUnlinkedAttrNotRequired('sample', $existingAttr['sample_attributes_website_id'], $existingAttr['caption']);
       }
     }
     foreach ($existingAttrs['occurrence'] as $existingAttr) {
-      if (!in_array($existingAttr['id'], $attrsOnLayout['occurrence']) && strpos($existingAttr['survey_validation_rules'], 'required') !== FALSE) {
+      if (!in_array($existingAttr['id'], $attrsOnLayout['occurrence']) && strpos($existingAttr['survey_validation_rules'] ?? '', 'required') !== FALSE) {
         $this->ensureUnlinkedAttrNotRequired('occurrence', $existingAttr['occurrence_attributes_website_id'], $existingAttr['caption']);
       }
     }
