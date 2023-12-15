@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_child_sample_method_id
+    - node.type.iform_layout_builder_form
+  module:
+    - iform_layout_builder
+  enforced:
+    module:
+      - iform_layout_builder
+id: node.iform_layout_builder_form.field_child_sample_method_id
+field_name: field_child_sample_method_id
+entity_type: node
+bundle: iform_layout_builder_form
+label: 'Child sample method'
+description: 'Sample method to allocate to child (precise location) samples created using this form. The sample method selected in the previous control will be used for the overall visit.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_sample_method_id
+    - node.type.iform_layout_builder_form
+  module:
+    - iform_layout_builder
+  enforced:
+    module:
+      - iform_layout_builder
+id: node.iform_layout_builder_form.field_sample_method_id
+field_name: field_sample_method_id
+entity_type: node
+bundle: iform_layout_builder_form
+label: 'Sample method'
+description: 'Sample method to allocate to samples created using this form.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

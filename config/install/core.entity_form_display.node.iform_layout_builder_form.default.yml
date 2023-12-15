@@ -6,6 +6,8 @@ dependencies:
     - field.field.node.iform_layout_builder_form.field_available_for_groups
     - field.field.node.iform_layout_builder_form.field_form_type
     - field.field.node.iform_layout_builder_form.field_survey_id
+    - field.field.node.iform_layout_builder_form.field_sample_method_id
+    - field.field.node.iform_layout_builder_form.field_child_sample_method_id
     - field.field.node.iform_layout_builder_form.field_template
     - node.type.iform_layout_builder_form
   module:
@@ -56,8 +58,22 @@ content:
     third_party_settings: {  }
     type: number
     region: content
-  field_template:
+  field_sample_method_id:
     weight: 10
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+    type: number
+    region: content
+  field_child_sample_method_id:
+    weight: 11
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+    type: number
+    region: content
+  field_template:
+    weight: 12
     settings:
       display_label: true
     third_party_settings: {  }
