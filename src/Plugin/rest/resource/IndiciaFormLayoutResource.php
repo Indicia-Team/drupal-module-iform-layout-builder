@@ -2,7 +2,7 @@
 
 namespace Drupal\iform_layout_builder\Plugin\rest\resource;
 
-use Drupal\node\Entity\Node;
+use Drupal\core\Entity\EntityInterface;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -431,7 +431,6 @@ class IndiciaFormLayoutResource extends ResourceBase {
     unset($blockConfig['mode']);
     unset($blockConfig['option_create_or_existing']);
     unset($blockConfig['option_data_type']);
-    unset($blockConfig['option_existing_attributes_website_id']);
     unset($blockConfig['option_lookup_options_terms']);
     unset($blockConfig['option_lookup_options_control']);
     unset($blockConfig['option_text_options_control']);
@@ -530,13 +529,13 @@ class IndiciaFormLayoutResource extends ResourceBase {
   /**
    * Returns a readable label for the type of form.
    *
-   * @param \Drupal\node\Entity\Node $node
+   * @param \Drupal\core\Entity\EntityInterface $node
    *   The form node.
    *
    * @return string
    *   Verbose label for the type of data entry form.
    */
-  private function getFormTypeLabel(Node $node) {
+  private function getFormTypeLabel(EntityInterface $node) {
     if (!in_array($node->field_form_type->value, ['single', 'list', 'multiplace'])) {
       Throw new \Exception(t('Unrecognised form type @type', ['@type' => $node->field_form_type->value]));
     }
