@@ -22,7 +22,18 @@ class DataEntrySampleCustomAttributeBlock extends IndiciaCustomAttributeBlockBas
   }
 
   protected function getControlConfigFields() {
-    return parent::getControlConfigFields();
+    $r = parent::getControlConfigFields();
+    $r['child_sample_attribute'] = [
+      '#title' => 'Child sample attribute',
+      '#description' => 'Show this control for each separate child (pinpoint) sample location.',
+      '#type' => 'checkbox',
+    ];
+    // Hide control apart from for multiplace forms.
+    $node = $this->getCurrentNode();
+    if ($node->field_form_type->value !== 'multiplace') {
+      $r['child_sample_attribute']['#access'] = FALSE;
+    }
+    return $r;
   }
 
   /**
