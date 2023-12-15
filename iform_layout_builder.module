@@ -17,7 +17,7 @@ use Drupal\Component\Serialization\Yaml;
 function iform_layout_builder_library_info_build() {
   $node = \Drupal::routeMatch()->getParameter('node');
 
-  if (file_exists(PublicStream::basePath() . '/indicia/js/node.' . $node->id() . '.js')) {
+  if ($node && file_exists(PublicStream::basePath() . '/indicia/js/node.' . $node->id() . '.js')) {
     $libraries['my_module_node_js'] = [
       'version' => '1.x',
       'js' => [
@@ -182,16 +182,33 @@ function iform_layout_builder_layout_submit(&$form, FormStateInterface $form_sta
   }
 }
 
-function iform_layout_builder_alter_data_entry_form(&$form, FormStateInterface $form_state, $inserting) {
-  $form['actions']['submit']['#submit'][] = 'iform_layout_builder_data_entry_form_submit';
-  $form['field_survey_id']['#access'] = FALSE;
-  $value = $form['field_survey_id']['widget'][0]['value']['#default_value'];
-  $form['field_survey_id_selector'] = [
+function _iform_layout_builder_replace_number_with_select($fieldName, array $options, &$form) {
+  $value = $form[$fieldName]['widget'][0]['value']['#default_value'];
+  $form[$fieldName]['#access'] = FALSE;
+  $form["{$fieldName}_selector"] = [
     '#type' => 'select',
-    '#options' => get_survey_dataset_widget_options(),
-    '#title' => $form['field_survey_id']['widget']['#title'],
-    '#description' => $form['field_survey_id']['widget']['#description'],
+    '#options' => $options,
+    '#title' => $form[$fieldName]['widget']['#title'],
+    '#description' => $form[$fieldName]['widget']['#description'],
     '#default_value' => $value,
+    '#weight' => $form[$fieldName]['#weight'],
+  ];
+}
+
+/**
+ * Modifications for the form edit form.
+ */
+function iform_layout_builder_alter_form_node_form(&$form, FormStateInterface $form_state, $inserting) {
+  $form['actions']['submit']['#submit'][] = 'iform_layout_builder_data_entry_form_submit';
+  // Replace ID controls with selects.
+  _iform_layout_builder_replace_number_with_select('field_survey_id', get_survey_dataset_widget_options(), $form);
+  _iform_layout_builder_replace_number_with_select('field_sample_method_id', get_sample_method_widget_options(), $form);
+  _iform_layout_builder_replace_number_with_select('field_child_sample_method_id', get_sample_method_widget_options(), $form);
+  // Child sample method only needed for multi-place forms.
+  $form['field_child_sample_method_id_selector']['#states'] = [
+    'visible' => [
+      ':input[id="edit-field-form-type"]' => ['value' => 'multiplace'],
+    ],
   ];
 }
 
@@ -203,7 +220,7 @@ function iform_layout_builder_alter_data_entry_form(&$form, FormStateInterface $
  * * Replaces the survey dataset integer control with a select.
  */
 function iform_layout_builder_form_node_iform_layout_builder_form_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  iform_layout_builder_alter_data_entry_form($form, $form_state, TRUE);
+  iform_layout_builder_alter_form_node_form($form, $form_state, TRUE);
 }
 
 /**
@@ -214,7 +231,7 @@ function iform_layout_builder_form_node_iform_layout_builder_form_form_alter(&$f
  * * Replaces the survey dataset integer control with a select.
  */
 function iform_layout_builder_form_node_iform_layout_builder_form_edit_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  iform_layout_builder_alter_data_entry_form($form, $form_state, FALSE);
+  iform_layout_builder_alter_form_node_form($form, $form_state, FALSE);
   if (!empty($form['field_form_type']['widget']['#default_value'])) {
     $form['field_form_type']['widget']['#attributes'] = ['disabled' => 'disabled'];
     $form['field_form_type']['widget']['#description'] = t('This cannot be changed for existing forms.');
@@ -231,14 +248,36 @@ function get_survey_dataset_widget_options() {
   ] + $surveyStructure->getSurveyList();
 }
 
+function get_sample_method_widget_options() {
+  $r = [
+    NULL => '-Please select-',
+  ];
+  iform_load_helpers(['data_entry_helper']);
+  $conn = iform_get_connection_details();
+  $readAuth = \data_entry_helper::get_read_auth($conn['website_id'], $conn['password']);
+  $sampleMethods = \data_entry_helper::get_population_data([
+    'table' => 'termlists_term',
+    'extraParams' => $readAuth + [
+      'view' => 'cache',
+      'termlist_title' => 'Sample methods',
+      'orderby' => 'term',
+    ],
+    'columns' => 'id,term,termlist_title',
+  ]);
+  foreach ($sampleMethods as $term) {
+    $r[$term['id']] = $term['term'];
+  }
+  return $r;
+}
+
 /**
  * Edit form submit handler which handles survey dataset creation.
  */
 function iform_layout_builder_data_entry_form_submit($form, FormStateInterface $form_state) {
   $surveyId = $form_state->getValue('field_survey_id_selector');
   $savedSurveyId = $form_state->getValue('field_survey_id')[0]['value'];
+  $entity = $form_state->getFormObject()->getEntity();
   if ($surveyId === '0' || $surveyId !== $savedSurveyId) {
-    $entity = $form_state->getFormObject()->getEntity();
     if ($surveyId === '0') {
       // Create new survey selected.
       $surveyStructure = new SurveyStructure();
@@ -247,9 +286,13 @@ function iform_layout_builder_data_entry_form_submit($form, FormStateInterface $
     elseif ($surveyId !== $savedSurveyId) {
       // User has switched form to a different existing survey.
       $entity->set('field_survey_id', $surveyId);
-      $entity->save();
     }
   }
+  $sampleMethodId = $form_state->getValue('field_sample_method_id_selector');
+  $entity->set('field_sample_method_id', $sampleMethodId);
+  $childSampleMethodId = $form_state->getValue('field_child_sample_method_id_selector');
+  $entity->set('field_child_sample_method_id', $childSampleMethodId);
+  $entity->save();
 }
 
 /**
@@ -315,17 +358,25 @@ function iform_layout_builder_node_view(array &$build, EntityInterface $entity,
         '#value' => \data_entry_helper::$entity_to_load['occurrence:id'],
       ];
     }
-    $config = \Drupal::config('iform_layout_builder.settings');
-    $sensitiveSpeciesListId = $config->get('sensitivity_scratchpad_list_id');
-    if (!empty($sensitiveSpeciesListId)) {
-      iform_layout_builder_sensitivity_control($sensitiveSpeciesListId);
-    }
     if (!empty(\data_entry_helper::$entity_to_load['sample:id'])) {
       $build['sample_id'] = [
         '#type' => 'hidden',
         '#name' => 'sample:id',
         '#value' => \data_entry_helper::$entity_to_load['sample:id'],
       ];
+    }
+    $config = \Drupal::config('iform_layout_builder.settings');
+    $sampleMethodId = \data_entry_helper::$entity_to_load['sample:sample_method_id'] ?? $entity->field_sample_method_id->value;
+    if ($sampleMethodId) {
+      $build['sample_method_id'] = [
+        '#type' => 'hidden',
+        '#name' => 'sample:sample_method_id',
+        '#value' => $sampleMethodId,
+      ];
+    }
+    $sensitiveSpeciesListId = $config->get('sensitivity_scratchpad_list_id');
+    if (!empty($sensitiveSpeciesListId)) {
+      iform_layout_builder_sensitivity_control($sensitiveSpeciesListId);
     }
     $build = array_merge([
         'form_header' => [
