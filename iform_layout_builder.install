@@ -1,6 +1,9 @@
 <?php
 
 use Drupal\Core\Config\FileStorage;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\Component\Serialization\Yaml;
 
 /**
  * Adds configuration for the RESTful resource for reading a survey form.
@@ -22,4 +25,54 @@ function iform_layout_builder_update_8802() {
   /** @var \Drupal\Core\Config\StorageInterface $active_storage */
   $active_storage = \Drupal::service('config.storage');
   $active_storage->write('rest.resource.indicia_form_layout_list', $source->read('rest.resource.indicia_form_layout_list'));
+}
+
+/**
+ * Adds new fields to forms for managing the sample method.
+ */
+function iform_layout_builder_update_9200() {
+  $modulePath = \Drupal::service('extension.list.module')->getPath('iform_layout_builder');
+  $configSettings = Yaml::decode(file_get_contents(
+    "$modulePath/config/install/field.storage.node.field_sample_method_id.yml"
+  ));
+  $fieldStorage = FieldStorageConfig::create($configSettings);
+  $fieldStorage->save();
+  $configSettings = Yaml::decode(file_get_contents(
+    "$modulePath/config/install/field.storage.node.field_child_sample_method_id.yml"
+  ));
+  $fieldStorage = FieldStorageConfig::create($configSettings);
+  $fieldStorage->save();
+  $configSettings = Yaml::decode(file_get_contents(
+    "$modulePath/config/install/field.field.node.iform_layout_builder_form.field_sample_method_id.yml"
+  ));
+  $field = FieldConfig::create($configSettings);
+  $field->save();
+  $configSettings = Yaml::decode(file_get_contents(
+    "$modulePath/config/install/field.field.node.iform_layout_builder_form.field_child_sample_method_id.yml"
+  ));
+  $field = FieldConfig::create($configSettings);
+  $field->save();
+  $properties = array(
+    'targetEntityType' => 'node',
+    'bundle' => 'iform_layout_builder_form'
+  );
+  if ($formDisplays = \Drupal::entityTypeManager()->getStorage('entity_form_display')->loadByProperties($properties)) {
+    foreach ($formDisplays as $formDisplay) {
+      $formDisplay->setComponent('field_sample_method_id', [
+        'weight' => 10,
+        'type' => 'number',
+        'region' => 'content',
+      ]);
+      $formDisplay->setComponent('field_child_sample_method_id', [
+        'weight' => 11,
+        'type' => 'number',
+        'region' => 'content',
+      ]);
+      $formDisplay->setComponent('field_template', [
+        'weight' => 12,
+      ]);
+      $formDisplay->save();
+    }
+  }
+
 }
