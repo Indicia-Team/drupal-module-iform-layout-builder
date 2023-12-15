@@ -27,7 +27,7 @@ class SampleOccurrenceHandler extends IndiciaRestClient {
     $values = array_merge($data, [
       'website_id' => $config->get('website_id'),
       'survey_id' => $entity->field_survey_id->value,
-      'sample:input_form' => trim(\Drupal::service('path.alias_manager')
+      'sample:input_form' => trim(\Drupal::service('path_alias.manager')
         ->getAliasByPath('/node/' . $entity->id()), '/'),
     ]);
     if ($isDeletion) {
@@ -41,8 +41,13 @@ class SampleOccurrenceHandler extends IndiciaRestClient {
     if ($entity->field_form_type->value === 'single') {
       $submission = \data_entry_helper::build_sample_occurrence_submission($values, $zeroAttrs);
     }
-    else {
+    elseif ($entity->field_form_type->value === 'list') {
       $submission = \data_entry_helper::build_sample_occurrences_list_submission($values, FALSE, $zeroAttrs);
+    }
+    elseif ($entity->field_form_type->value === 'multiplace') {
+      echo $entity->field_form_type->value . ' submission build.<br/>';
+      $submission = \data_entry_helper::build_sample_subsamples_occurrences_submission($values, FALSE, $zeroAttrs);
+
     }
     $response = \data_entry_helper::forward_post_to('save', $submission, $auth['write_tokens']);
     if (is_array($response) && array_key_exists('success', $response)) {
