@@ -228,6 +228,7 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
         $this->setConfigurationValue('option_admin_name', $existing['response']['values']['caption']);
         $this->setConfigurationValue('option_data_type', $existing['response']['values']['data_type']);
         $this->setConfigurationValue('option_suffix', $existing['response']['values']['unit']);
+        $this->setConfigurationValue('option_existing_termlist_id', $existing['response']['values']['termlist_id']);
         if (isset($existing['response']['terms'])) {
           $this->setConfigurationValue('option_lookup_options_terms', implode("\n", $existing['response']['terms']));
         }
