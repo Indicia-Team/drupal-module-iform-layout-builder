@@ -53,6 +53,17 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
     $ctrlOptions['subSamplePerRow'] = $ctrlOptions['spatialRefPerRow'];
     $ctrlOptions['speciesControlToUseSubSamples'] = $ctrlOptions['spatialRefPerRow'];
     $ctrlOptions['spatialRefPerRowUseFullscreenMap'] = $ctrlOptions['spatialRefPerRow'];
+    // Set occurrence attribute labels from custom attribute block config.
+    $node = $this->routeMatch->getParameter('node');
+    foreach ($node->get('layout_builder__layout')->getSections() as $section) {
+      foreach ($section->getComponents() as $component) {
+        $asArray = $component->toArray();
+        $blockConfig = $asArray['configuration'];
+        if ($blockConfig['id'] === 'data_entry_occurrence_custom_attribute_block' && !empty($blockConfig['option_label'])) {
+          $ctrlOptions['occAttrOptions'][(string) $blockConfig['option_existing_attribute_id']]= ['label' => $blockConfig['option_label']];
+        }
+      }
+    }
     try {
       $preloader = $this->getPreloadScratchpadListControl($blockConfig, $ctrlOptions);
       $ctrl = $preloader . \data_entry_helper::species_checklist($ctrlOptions);

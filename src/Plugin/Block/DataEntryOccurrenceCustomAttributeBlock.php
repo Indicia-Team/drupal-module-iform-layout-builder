@@ -51,13 +51,6 @@ species. Use the edit button which appears in the top right of this panel when y
 settings.
 TXT;
       $msg = $this->t($txt, ['@label' => $blockConfig['option_label']]);
-      // Pass attribute captions to the species checklist control.
-      iform_load_helpers(['helper_base']);
-      if (!isset(\helper_base::$indiciaData['occurrenceAttributeCaptions'])) {
-        \helper_base::$indiciaData['occurrenceAttributeCaptions'] = [];
-      }
-      \helper_base::$indiciaData['occurrenceAttributeCaptions']["attr$blockConfig[option_existing_attribute_id]"]
-        = $blockConfig['option_label'];
     }
     if (isset($msg)) {
       // Not outputting a control.

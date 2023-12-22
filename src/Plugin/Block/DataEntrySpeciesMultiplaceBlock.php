@@ -67,6 +67,7 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
    */
   public function build() {
     iform_load_helpers(['data_entry_helper']);
+    $blockConfig = $this->getConfiguration();
     if ($this->inPreview) {
       // Control has no UI till map clicked, so needs a placeholder when on
       // layout builder.
@@ -81,7 +82,6 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
       ];
     }
     else {
-      $blockConfig = $this->getConfiguration();
       $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
       $ctrlOptions['spatialSystem'] = $blockConfig["option_spatialSystem"];
       // Copy read auth tokens due to inconsistency in way standard species
@@ -96,6 +96,22 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
       }
       try {
         $preloader = $this->getPreloadScratchpadListControl($blockConfig, $ctrlOptions);
+        $ctrlOptions['occAttrOptions'] = [];
+        // Set sample and occurrence attribute labels from custom attribute
+        // block config.
+        $node = $this->routeMatch->getParameter('node');
+        foreach ($node->get('layout_builder__layout')->getSections() as $section) {
+          foreach ($section->getComponents() as $component) {
+            $asArray = $component->toArray();
+            $blockConfig = $asArray['configuration'];
+            if ($blockConfig['id'] === 'data_entry_sample_custom_attribute_block' && !empty($blockConfig['option_child_sample_attribute']) && !empty($blockConfig['option_label'])) {
+              $ctrlOptions["smpAttr:$blockConfig[option_existing_attribute_id]|label"] = $blockConfig['option_label'];
+            }
+            if ($blockConfig['id'] === 'data_entry_occurrence_custom_attribute_block' && !empty($blockConfig['option_label'])) {
+              $ctrlOptions['occAttrOptions'][(string) $blockConfig['option_existing_attribute_id']]= ['label' => $blockConfig['option_label']];
+            }
+          }
+        }
         $ctrl = $preloader . \data_entry_helper::multiple_places_species_checklist($ctrlOptions);
       }
       catch (\Exception $e) {
