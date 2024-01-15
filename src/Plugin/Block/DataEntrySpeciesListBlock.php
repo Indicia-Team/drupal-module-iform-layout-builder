@@ -67,9 +67,9 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
     foreach ($node->get('layout_builder__layout')->getSections() as $section) {
       foreach ($section->getComponents() as $component) {
         $asArray = $component->toArray();
-        $blockConfig = $asArray['configuration'];
-        if ($blockConfig['id'] === 'data_entry_occurrence_custom_attribute_block' && !empty($blockConfig['option_label'])) {
-          $ctrlOptions['occAttrOptions'][(string) $blockConfig['option_existing_attribute_id']] = ['label' => $blockConfig['option_label']];
+        $otherBlockConfig = $asArray['configuration'];
+        if ($otherBlockConfig['id'] === 'data_entry_occurrence_custom_attribute_block' && !empty($otherBlockConfig['option_label'])) {
+          $ctrlOptions['occAttrOptions'][(string) $otherBlockConfig['option_existing_attribute_id']] = ['label' => $otherBlockConfig['option_label']];
         }
       }
     }
