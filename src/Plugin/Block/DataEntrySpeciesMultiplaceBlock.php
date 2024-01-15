@@ -82,6 +82,16 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
       ];
     }
     else {
+      $node = $this->getCurrentNode();
+      if (!$node) {
+        return [
+          '#markup' => new FormattableMarkup('<div>Placeholder for block when not loaded on a node</div>', []),
+          '#cache' => [
+            // No cache please.
+            'max-age' => 0,
+          ],
+        ];
+      }
       $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
       $ctrlOptions['spatialSystem'] = $blockConfig["option_spatialSystem"];
       // Copy read auth tokens due to inconsistency in way standard species
@@ -90,7 +100,6 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
         'auth_token' => $ctrlOptions['extraParams']['auth_token'],
         'nonce' => $ctrlOptions['extraParams']['nonce'],
       ];
-      $node = $this->getCurrentNode();
       if (!empty($node->field_child_sample_method_id->value)) {
         $ctrlOptions['sample_method_id'] = $node->field_child_sample_method_id->value;
       }
@@ -99,7 +108,6 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
         $ctrlOptions['occAttrOptions'] = [];
         // Set sample and occurrence attribute labels from custom attribute
         // block config.
-        $node = $this->routeMatch->getParameter('node');
         foreach ($node->get('layout_builder__layout')->getSections() as $section) {
           foreach ($section->getComponents() as $component) {
             $asArray = $component->toArray();

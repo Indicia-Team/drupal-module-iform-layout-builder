@@ -46,6 +46,16 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
    * {@inheritdoc}
    */
   public function build() {
+    $node = $this->getCurrentNode();
+    if (!$node) {
+      return [
+        '#markup' => new FormattableMarkup('<div>Placeholder for block when not loaded on a node</div>', []),
+        '#cache' => [
+          // No cache please.
+          'max-age' => 0,
+        ],
+      ];
+    }
     iform_load_helpers(['data_entry_helper']);
     $blockConfig = $this->getConfiguration();
     $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
@@ -54,13 +64,12 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
     $ctrlOptions['speciesControlToUseSubSamples'] = $ctrlOptions['spatialRefPerRow'];
     $ctrlOptions['spatialRefPerRowUseFullscreenMap'] = $ctrlOptions['spatialRefPerRow'];
     // Set occurrence attribute labels from custom attribute block config.
-    $node = $this->routeMatch->getParameter('node');
     foreach ($node->get('layout_builder__layout')->getSections() as $section) {
       foreach ($section->getComponents() as $component) {
         $asArray = $component->toArray();
         $blockConfig = $asArray['configuration'];
         if ($blockConfig['id'] === 'data_entry_occurrence_custom_attribute_block' && !empty($blockConfig['option_label'])) {
-          $ctrlOptions['occAttrOptions'][(string) $blockConfig['option_existing_attribute_id']]= ['label' => $blockConfig['option_label']];
+          $ctrlOptions['occAttrOptions'][(string) $blockConfig['option_existing_attribute_id']] = ['label' => $blockConfig['option_label']];
         }
       }
     }

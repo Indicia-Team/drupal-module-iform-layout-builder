@@ -193,7 +193,7 @@ abstract class IndiciaSpeciesListBlockBase extends IndiciaControlBlockBase {
    * If preloading a scratchpad list, add the code required to the page.
    */
   protected function getPreloadScratchpadListControl($blockConfig, &$ctrlOptions) {
-    if ($blockConfig['option_speciesListMode'] === 'scratchpadList') {
+    if (isset($blockConfig['option_speciesListMode']) && $blockConfig['option_speciesListMode'] === 'scratchpadList') {
       require_once \data_entry_helper::client_helper_path() . 'prebuilt_forms/extensions/misc_extensions.php';
       $connection = iform_get_connection_details();
       $readAuth = \data_entry_helper::get_read_auth($connection['website_id'], $connection['password']);
