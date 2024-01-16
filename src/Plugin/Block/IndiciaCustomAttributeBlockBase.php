@@ -70,12 +70,6 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
       'suffix' => [
         '#label' => 'Control suffix',
         '#description' => 'Suffix shown after control (e.g the unit).',
-        '#states' => [
-          // Enable this control only if the option 'Create a new attribute' is selected above.
-          'visible' => [
-            ':input[id="option_create_or_existing"]' => ['value' => 'new'],
-          ],
-        ],
       ],
       'required' => [
         '#description' => 'Tick this box to make inputting a value required.',
@@ -227,7 +221,6 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
       else {
         $this->setConfigurationValue('option_admin_name', $existing['response']['values']['caption']);
         $this->setConfigurationValue('option_data_type', $existing['response']['values']['data_type']);
-        $this->setConfigurationValue('option_suffix', $existing['response']['values']['unit']);
         $this->setConfigurationValue('option_existing_termlist_id', $existing['response']['values']['termlist_id']);
         if (isset($existing['response']['terms'])) {
           $this->setConfigurationValue('option_lookup_options_terms', implode("\n", $existing['response']['terms']));
@@ -288,6 +281,9 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
       elseif ($blockConfig['option_data_type'] === 'F') {
         $ctrlOptions['attributes']['step'] = 'any';
       }
+    }
+    if (!empty($blockConfig['option_suffix'])) {
+      $ctrlOptions['afterControl'] = $blockConfig['option_suffix'];
     }
     $helpTexts = [];
     if (!empty($blockConfig['option_helpText'])) {
