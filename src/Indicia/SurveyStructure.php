@@ -235,10 +235,12 @@ class SurveyStructure extends IndiciaRestClient {
    *   Drupal entity.
    */
   public function checkAttrsExists($entity) {
-    if (empty($entity->field_survey_id->value)) {
+    if (empty($entity->field_survey_id->value) && $entity->isPublished()) {
       \Drupal::messenger()->addError(t('Cannot create attributes until survey created.'));
       return;
     }
+    // If no survey, but unpublished, we allow it to proceed only to fetch the
+    // existing custom attribute details from the warehouse.
     $existingAttrs = [
       'occurrence' => $this->getExistingCustomAttributesForSurvey('occurrence', $entity->field_survey_id->value),
       'sample' => $this->getExistingCustomAttributesForSurvey('sample', $entity->field_survey_id->value),
@@ -259,26 +261,29 @@ class SurveyStructure extends IndiciaRestClient {
         if (preg_match('/data_entry_(sample|occurrence)_custom_attribute_block/', $blockConfig['id'], $matches)) {
           $attrType = $matches[1];
           if ($blockConfig['option_create_or_existing'] === 'new' || $blockConfig['option_existing_attribute_id'] === NULL) {
-            // Create a new attribute, which will also link to the survey.
-            $createResponse = $this->createAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
-            if (!empty($createResponse['href'])) {
-              $fetch = $this->getRestResponse($createResponse['href'], 'GET');
-              $attr = $fetch['response'];
-              $blockConfig['option_create_or_existing'] = 'existing';
-              $blockConfig['option_existing_attribute_id'] = $attr['values']['id'];
-              $blockConfig['option_existing_termlist_id'] = $attr['values']['termlist_id'];
-              // Also store the attributes_website link ID, required when
-              // updating.
-              $blockConfig['option_existing_attributes_website_id'] = $createResponse["{$attrType}_attributes_websites"][0]['values']['id'];
-              $component->setConfiguration($blockConfig);
-              \Drupal::messenger()->addMessage(t(
-                'A new @type attribute has been created on the warehouse with ID @id for the @label control.',
-                [
-                  '@type' => $attrType,
-                  '@id' => $attr['values']['id'],
-                  '@label' => $blockConfig['option_label'],
-                ]
-              ));
+            // Create a new attribute, which will also link to the survey, but
+            // not if unpublished.
+            if ($entity->isPublished()) {
+              $createResponse = $this->createAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
+              if (!empty($createResponse['href'])) {
+                $fetch = $this->getRestResponse($createResponse['href'], 'GET');
+                $attr = $fetch['response'];
+                $blockConfig['option_create_or_existing'] = 'existing';
+                $blockConfig['option_existing_attribute_id'] = $attr['values']['id'];
+                $blockConfig['option_existing_termlist_id'] = $attr['values']['termlist_id'];
+                // Also store the attributes_website link ID, required when
+                // updating.
+                $blockConfig['option_existing_attributes_website_id'] = $createResponse["{$attrType}_attributes_websites"][0]['values']['id'];
+                $component->setConfiguration($blockConfig);
+                \Drupal::messenger()->addMessage(t(
+                  'A new @type attribute has been created on the warehouse with ID @id for the @label control.',
+                  [
+                    '@type' => $attrType,
+                    '@id' => $attr['values']['id'],
+                    '@label' => $blockConfig['option_label'],
+                  ]
+                ));
+              }
             }
           }
           else {
@@ -308,13 +313,15 @@ class SurveyStructure extends IndiciaRestClient {
                 $blockConfig['option_lookup_options_terms'] = implode("\n", $existing['response']['terms']);
               }
               $component->setConfiguration($blockConfig);
-              $this->updateAttributeWebsiteLink(
-                $attrType,
-                $entity->field_survey_id->value,
-                $blockConfig,
-                array_key_exists($blockConfig['option_existing_attribute_id'], $existingAttrs[$attrType])
-                  ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : []
-              );
+              if ($entity->isPublished()) {
+                $this->updateAttributeWebsiteLink(
+                  $attrType,
+                  $entity->field_survey_id->value,
+                  $blockConfig,
+                  array_key_exists($blockConfig['option_existing_attribute_id'], $existingAttrs[$attrType])
+                    ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : []
+                );
+              }
             }
             elseif (!empty($blockConfig['dirty'])) {
               // Don't save if there are no changes.
@@ -324,20 +331,22 @@ class SurveyStructure extends IndiciaRestClient {
               $attrsOnLayout[$attrType][] = $blockConfig['option_existing_attribute_id'];
               // If user is has attribute admin rights then update the warehouse
               // attribute caption, description, validation rules etc.
-              if (false && $attrAdmin) {
-                $this->updateAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
-              }
-              else {
-                // User not admin but can still update the link data between the
-                // attribute and survey, e.g. the required validation rule in
-                // attributes_websites link.
-                $this->updateAttributeWebsiteLink(
-                  $attrType,
-                  $entity->field_survey_id->value,
-                  $blockConfig,
-                  array_key_exists($blockConfig['option_existing_attribute_id'], $existingAttrs[$attrType])
-                    ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : []
-                );
+              if ($entity->isPublished()) {
+                if ($attrAdmin) {
+                  $this->updateAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
+                }
+                else {
+                  // User not admin but can still update the link data between the
+                  // attribute and survey, e.g. the required validation rule in
+                  // attributes_websites link.
+                  $this->updateAttributeWebsiteLink(
+                    $attrType,
+                    $entity->field_survey_id->value,
+                    $blockConfig,
+                    array_key_exists($blockConfig['option_existing_attribute_id'], $existingAttrs[$attrType])
+                      ? $existingAttrs[$attrType][$blockConfig['option_existing_attribute_id']] : []
+                  );
+                }
               }
             }
           }

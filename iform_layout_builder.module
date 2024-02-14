@@ -279,9 +279,11 @@ function iform_layout_builder_data_entry_form_submit($form, FormStateInterface $
   $entity = $form_state->getFormObject()->getEntity();
   if ($surveyId === '0' || $surveyId !== $savedSurveyId) {
     if ($surveyId === '0') {
-      // Create new survey selected.
-      $surveyStructure = new SurveyStructure();
-      $surveyStructure->createSurvey($entity);
+      // Create new survey selected but only if page published.
+      if ($entity->isPublished()) {
+        $surveyStructure = new SurveyStructure();
+        $surveyStructure->createSurvey($entity);
+      }
     }
     elseif ($surveyId !== $savedSurveyId) {
       // User has switched form to a different existing survey.

@@ -3,12 +3,12 @@
 namespace Drupal\iform_layout_builder\Plugin\rest\resource;
 
 use Drupal\core\Entity\EntityInterface;
-use Drupal\rest\Plugin\ResourceBase;
-use Drupal\rest\ResourceResponse;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Psr\Log\LoggerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\path_alias\AliasManagerInterface;
+use Drupal\rest\Plugin\ResourceBase;
+use Drupal\rest\ResourceResponse;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a resource for single Iform_layout_builder forms.
@@ -69,6 +69,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       'created_by_uid' => (integer) $node->getOwnerID(),
       'created_by_id' => (integer) $node->getOwner()->field_indicia_user_id->value,
       'created_on' => \Drupal::service('date.formatter')->format($node->getCreatedTime(), 'custom', 'c'),
+      'is_published' => $node->isPublished(),
     ];
     if ($node->getEntityType()->isRevisionable()) {
       $data['revision_id'] = (integer) $node->getRevisionId();
@@ -100,15 +101,20 @@ class IndiciaFormLayoutResource extends ResourceBase {
         }
         $fieldConfig = [
           'type' => $this->getTypeFromBlockId($blockConfig['id']),
-          'field_name' => $this->getControlFieldName($blockConfig),
+          'field_name' => $this->getControlFieldName($blockConfig, $node),
         ];
         if (!empty($blockConfig['option_data_type'])) {
           $blockConfig['data_type'] = $this->getVerboseDataType($blockConfig['option_data_type']);
         }
         $fieldConfig['control_type'] = $this->getControlType($blockConfig);
+
+        if (!$node->isPublished() && substr($fieldConfig['type'], -17) === '_custom_attribute') {
+          $this->addUnpublishedAttrInfo($blockConfig);
+        }
         $this->cleanupUnwantedBlockConfigProperties($blockConfig);
         foreach ($blockConfig as $key => $value) {
-          // Tidy - remove option_* or option_existing_* prefixes from block config.
+          // Tidy - remove option_* or option_existing_* prefixes from block
+          // config.
           $camel = preg_replace('/^option_(existing_)?/', '', $key);
           $snake = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $camel));
           // Convert Drupal 0/1 to true/false for booleans.
@@ -313,16 +319,18 @@ class IndiciaFormLayoutResource extends ResourceBase {
       \iform_load_helpers(['helper_base']);
       $conn = \iform_get_connection_details();
       $readAuth = \helper_base::get_read_auth($conn['website_id'], $conn['password']);
-      $terms = \helper_base::get_population_data(array(
+      $terms = \helper_base::get_population_data([
         'table' => 'termlists_term',
         'extraParams' => $readAuth + [
-          'view' => 'cache',
+          // Form editors get the uncached terms view, users get cached terms
+          // table.
+          'view' => !empty($_SESSION['iform_layout_builder-no_termlist_cache']) ? 'list' : 'cache',
           'termlist_id' => $fieldConfig['termlist_id'],
           'orderby' => 'sort_order, term',
           'preferred' => 't',
           'columns' => 'id,term,parent_id,preferred_image_path',
         ],
-      ));
+      ]);
       foreach ($terms as &$term) {
         if (empty($term['parent_id'])) {
           unset($term['parent_id']);
@@ -358,6 +366,39 @@ class IndiciaFormLayoutResource extends ResourceBase {
       }
     }
     $fieldConfig['field_name'] = 'occurrence:taxa_taxon_list_id';
+  }
+
+  /**
+   * Add info to unpublished custom attributes.
+   *
+   * When a layout is on an unpublished node, nothing gets saved to the
+   * warehouse. Add enough info to the custom attribute response so that the
+   * app gets a valid response (albeit with 0 for the various IDs). Allows
+   * preparation of unpublished forms that can be viewed in the app.
+   *
+   * @param array $blockConfig
+   *   Block configuraiton which gets modified.
+   */
+  private function addUnpublishedAttrInfo(array &$blockConfig) {
+
+    if (empty($blockConfig['option_existing_attribute_id'])) {
+      $blockConfig['option_existing_attribute_id'] = 0;
+    }
+    if ($blockConfig['option_data_type'] === 'L' && empty($blockConfig['option_existing_termlist_id'])) {
+      $blockConfig['option_existing_termlist_id'] = 0;
+      if (!empty($blockConfig['option_lookup_options_terms'])) {
+        $termsText = str_replace("\r\n", "\n", $blockConfig['option_lookup_options_terms']);
+        $termsText = str_replace("\r", "\n", $termsText);
+        $terms = explode("\n", trim($termsText));
+        $blockConfig['option_terms'] = [];
+        foreach ($terms as $term) {
+          $blockConfig['option_terms'][] = [
+            'id' => 0,
+            'term' => $term,
+          ];
+        }
+      }
+    }
   }
 
   /**
@@ -581,7 +622,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
    * @return string
    *   Indicia field name, e.g. occurrence:comment.
    */
-  private function getControlFieldName(array $blockConfig) {
+  private function getControlFieldName(array $blockConfig, $node) {
     switch ($this->getTypeFromBlockId($blockConfig['id'])) {
       case 'date_picker':
         return 'sample:date';
@@ -601,6 +642,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
         return 'occurrence:comment';
 
       case 'occurrence_custom_attribute':
+        if (!$node->isPublished() && empty($blockConfig['option_existing_attribute_id'])) {
+          return 'occAttr:0';
+        }
         return "occAttr:$blockConfig[option_existing_attribute_id]";
 
       case 'place_search':
@@ -610,6 +654,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
         return 'sample:comment';
 
       case 'sample_custom_attribute':
+        if (!$node->isPublished() && empty($blockConfig['option_existing_attribute_id'])) {
+          return 'smpAttr:0';
+        }
         return "smpAttr:$blockConfig[option_existing_attribute_id]";
 
       case 'spatial_ref':
