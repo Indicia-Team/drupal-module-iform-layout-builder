@@ -199,17 +199,28 @@ function _iform_layout_builder_replace_number_with_select($fieldName, array $opt
  * Modifications for the form edit form.
  */
 function iform_layout_builder_alter_form_node_form(&$form, FormStateInterface $form_state, $inserting) {
-  $form['actions']['submit']['#submit'][] = 'iform_layout_builder_data_entry_form_submit';
-  // Replace ID controls with selects.
-  _iform_layout_builder_replace_number_with_select('field_survey_id', get_survey_dataset_widget_options(), $form);
-  _iform_layout_builder_replace_number_with_select('field_sample_method_id', get_sample_method_widget_options(), $form);
-  _iform_layout_builder_replace_number_with_select('field_child_sample_method_id', get_sample_method_widget_options(), $form);
-  // Child sample method only needed for multi-place forms.
-  $form['field_child_sample_method_id_selector']['#states'] = [
-    'visible' => [
-      ':input[id="edit-field-form-type"]' => ['value' => 'multiplace'],
-    ],
-  ];
+  try {
+    $form['actions']['submit']['#submit'][] = 'iform_layout_builder_data_entry_form_submit';
+    // Replace ID controls with selects.
+    _iform_layout_builder_replace_number_with_select('field_survey_id', get_survey_dataset_widget_options(), $form);
+    _iform_layout_builder_replace_number_with_select('field_sample_method_id', get_sample_method_widget_options(), $form);
+    _iform_layout_builder_replace_number_with_select('field_child_sample_method_id', get_sample_method_widget_options(), $form);
+    // Child sample method only needed for multi-place forms.
+    $form['field_child_sample_method_id_selector']['#states'] = [
+      'visible' => [
+        ':input[id="edit-field-form-type"]' => ['value' => 'multiplace'],
+      ],
+    ];
+  }
+  catch (Exception $e) {
+    if (substr($e->getMessage(), 0, 16) === 'Invalid response') {
+      \Drupal::messenger()->addError('Connection to the Indicia warehouse failed. More information can be found in the Drupal error logs.');
+    }
+    // Restrict access to all elements in this form.
+    foreach (\Drupal\Core\Render\Element::children($form) as $key) {
+      $form[$key]['#disabled'] = TRUE;
+    }
+  }
 }
 
 /**
