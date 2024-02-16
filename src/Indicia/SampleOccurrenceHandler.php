@@ -45,7 +45,6 @@ class SampleOccurrenceHandler extends IndiciaRestClient {
       $submission = \data_entry_helper::build_sample_occurrences_list_submission($values, FALSE, $zeroAttrs);
     }
     elseif ($entity->field_form_type->value === 'multiplace') {
-      echo $entity->field_form_type->value . ' submission build.<br/>';
       $submission = \data_entry_helper::build_sample_subsamples_occurrences_submission($values, FALSE, $zeroAttrs);
 
     }
@@ -183,6 +182,11 @@ class SampleOccurrenceHandler extends IndiciaRestClient {
     $occurrence = $response['response']['values'];
     $response = $this->getRestResponse("samples/$occurrence[sample_id]", 'GET', NULL, ['verbose' => 1]);
     $sample = $response['response']['values'];
+    if ($formEntity->field_form_type->value === 'multiplace') {
+      // Overwrite with the parent sample.
+      $response = $this->getRestResponse("samples/$sample[parent_id]", 'GET', NULL, ['verbose' => 1]);
+      $sample = $response['response']['values'];
+    }
     \data_entry_helper::$entity_to_load = [];
     $this->copyEntityValueToLoadData($sample, 'smp', 'sample');
     $this->loadMedia('sample', $sample);
@@ -225,4 +229,5 @@ class SampleOccurrenceHandler extends IndiciaRestClient {
       }
     }
   }
+
 }
