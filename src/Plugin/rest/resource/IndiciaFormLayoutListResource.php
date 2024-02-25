@@ -58,15 +58,13 @@ class IndiciaFormLayoutListResource extends ResourceBase {
     $nids = \Drupal::entityQuery('node')
       // accessCheck FALSE - see https://drupal.stackexchange.com/questions/251864/logicexception-the-controller-result-claims-to-be-providing-relevant-cache-meta.
       ->accessCheck(FALSE)
-      ->condition('status', 1)
       ->condition('type', 'iform_layout_builder_form')
       ->execute();
     $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($nids);
-    // Maybe a better way to do this by asking IndiciaFormLayoutResource for its path?
+    // Maybe a better way to do this by asking IndiciaFormLayoutResource for
+    // its path?
     $href = \Drupal::request()->getSchemeAndHttpHost() . $this->routes()->get('indicia_form_layout_list.GET')->getPath();
-
     $groupPages = $this->getGroupPages();
-
     foreach ($nodes as $node) {
       $nid = $node->id();
       $node = $this->entityTypeManager->getStorage('node')->load($nid);
@@ -78,6 +76,7 @@ class IndiciaFormLayoutListResource extends ResourceBase {
           'survey_id' => $node->field_survey_id->value,
           'type' => $node->field_form_type->value . '_species_form',
           'href' => "$href/" . $node->id(),
+          'is_published' => $node->isPublished(),
         ];
         if (array_key_exists($alias, $groupPages)) {
           $formDetail['groups'] = $groupPages[$alias];
@@ -106,7 +105,7 @@ class IndiciaFormLayoutListResource extends ResourceBase {
       ],
     ]);
     $groupPages = [];
-    foreach($pageData as $page) {
+    foreach ($pageData as $page) {
       if (!array_key_exists($page['path'], $groupPages)) {
         $groupPages[$page['path']] = [];
       }
