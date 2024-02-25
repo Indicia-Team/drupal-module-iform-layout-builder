@@ -62,6 +62,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found');
     }
     $data = [
+      'id' => $node->id(),
       'title' => $node->getTitle(),
       'survey_id' => (integer) $node->field_survey_id->value,
       'type' => $this->getFormTypeLabel($node),
