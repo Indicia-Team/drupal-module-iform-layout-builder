@@ -1,0 +1,51 @@
+name: Report an app issue
+description: This is a template for reporting an app issue. To create a feature request or to report website issues please use the "Open a blank issue" below.
+title: 'Issue: '
+labels: ['mobile app']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this issue report! The more information you provide about your case the sooner we can reproduce the issue and improve the app.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the issue
+      description: A clear and concise description of what the issue is.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to happen?
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behaviour.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+  - type: input
+    id: time
+    attributes:
+      label: When did this happen
+      description: If you can provide the time of the day this issue has happened then we can look into our server logs to find anything related to your case.
+      placeholder: e.g. Monday, 20:21
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, drag and drop in this field screenshots to help explain your problem.
+      placeholder: |
+        Android: can be created by pressing the Volume Down and Power Button at the same time.
+
+        iOS: with Face ID - press the side button and volume up button; with a Home button - press the Home button and the side button.
+  - type: textarea
+    id: comments
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
