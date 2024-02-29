@@ -27,11 +27,26 @@ class DataEntrySampleCustomAttributeBlock extends IndiciaCustomAttributeBlockBas
       '#title' => 'Child sample attribute',
       '#description' => 'Show this control for each separate child (pinpoint) sample location.',
       '#type' => 'checkbox',
+      '#attributes' => [
+        'id' => 'option_child_sample_attribute',
+      ],
+    ];
+    $r['include_in_child_sample_label'] = [
+      '#title' => 'Include in child sample label',
+      '#description' => 'For mobile app forms, include the value in the label shown for each child sample.',
+      '#type' => 'checkbox',
+      '#states' => [
+        // Show this control only if the option 'Child sample attribute' is checked above.
+        'visible' => [
+          ':input[id="option_child_sample_attribute"]' => ['checked' => TRUE],
+        ],
+      ],
     ];
     // Hide control apart from for multiplace forms.
     $node = $this->getCurrentNode();
     if ($node->field_form_type->value !== 'multiplace') {
       $r['child_sample_attribute']['#access'] = FALSE;
+      $r['include_in_child_sample_label']['#access'] = FALSE;
     }
     return $r;
   }

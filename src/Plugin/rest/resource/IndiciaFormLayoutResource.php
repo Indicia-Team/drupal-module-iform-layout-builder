@@ -86,6 +86,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
     $sections = $node->get('layout_builder__layout')->getSections();
     $gridCustomAttributes = [];
     $subsampleControls = [];
+    $childSampleLabelTemplateParts = [];
     foreach ($sections as $section) {
       $components = $section->getComponents();
       $regions = [];
@@ -146,6 +147,10 @@ class IndiciaFormLayoutResource extends ResourceBase {
           $gridCustomAttributes[$weight] = $fieldConfig;
         }
         elseif ($fieldConfig['type'] === 'sample_custom_attribute' && !empty($fieldConfig['child_sample_attribute']) && $data['type'] === 'multiplace_species_form') {
+          if (!empty($fieldConfig['include_in_child_sample_label'])) {
+            $childSampleLabelTemplateParts[] = '${' . $fieldConfig['field_name'] . '}';
+          }
+          unset($fieldConfig['include_in_child_sample_label']);
           $subsampleControls[$weight] = $fieldConfig;
         }
         else {
@@ -191,6 +196,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
                 'type' => 'sub_samples',
                 'controls' => array_values($subsampleControls),
               ];
+              if (!empty($childSampleLabelTemplateParts)) {
+                $fieldConfig['child_sample_template'] = implode('::', $childSampleLabelTemplateParts);
+              }
             }
           }
         }
