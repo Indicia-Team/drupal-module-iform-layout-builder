@@ -336,7 +336,7 @@ class SurveyStructure extends IndiciaRestClient {
                 $existingAttr = $this->getRestResponse("{$attrType}_attributes/$blockConfig[option_existing_attribute_id]", 'GET');
                 $existingAttrMatches = $existingAttr['response']['values']['caption'] === $blockConfig['option_admin_name'];
                 $existingAttrMatches = $existingAttrMatches && $existingAttr['response']['values']['data_type'] === $blockConfig['option_data_type'];
-                $existingAttrMatches = $existingAttrMatches && $existingAttr['response']['values']['suffix'] == $blockConfig['option_suffix'];
+                $existingAttrMatches = $existingAttrMatches && $existingAttr['response']['values']['unit'] == $blockConfig['option_suffix'];
                 $multiValue = $blockConfig['option_data_type'] === 'L' && $blockConfig['option_lookup_options_control'] === 'checkbox_group'
                   ? 't' : 'f';
                 $existingAttrMatches = $existingAttrMatches && $existingAttr['response']['values']['multi_value'] === $multiValue;
@@ -354,9 +354,6 @@ class SurveyStructure extends IndiciaRestClient {
                   // Want to update the attribute, but can't as no rights.
                   \Drupal::messenger()->addWarning(t('You do not have permission to save changes to the @name attribute.', ['@name' => $blockConfig['option_admin_name']]));
                   $updateAttribute = FALSE;
-                }
-                if ($updateMainAttribute) {
-                  $updateMainAttribute = !$matches;
                 }
                 if ($updateAttribute) {
                   $this->updateAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
