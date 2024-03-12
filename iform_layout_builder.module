@@ -206,8 +206,17 @@ function iform_layout_builder_alter_form_node_form(&$form, FormStateInterface $f
     _iform_layout_builder_replace_number_with_select('field_sample_method_id', get_sample_method_widget_options(), $form);
     _iform_layout_builder_replace_number_with_select('field_child_sample_method_id', get_sample_method_widget_options(), $form);
     // Child sample method only needed for multi-place forms.
+    // Both parent and child required for multi-place forms.
+    $form['field_sample_method_id_selector']['#states'] = [
+      'required' => [
+        ':input[id="edit-field-form-type"]' => ['value' => 'multiplace'],
+      ],
+    ];
     $form['field_child_sample_method_id_selector']['#states'] = [
       'visible' => [
+        ':input[id="edit-field-form-type"]' => ['value' => 'multiplace'],
+      ],
+      'required' => [
         ':input[id="edit-field-form-type"]' => ['value' => 'multiplace'],
       ],
     ];
