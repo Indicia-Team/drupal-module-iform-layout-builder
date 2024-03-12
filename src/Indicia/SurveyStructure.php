@@ -332,7 +332,35 @@ class SurveyStructure extends IndiciaRestClient {
               // If user is has attribute admin rights then update the warehouse
               // attribute caption, description, validation rules etc.
               if ($entity->isPublished()) {
-                if ($attrAdmin) {
+                // Detect changes to the main attribute.
+                $existingAttr = $this->getRestResponse("{$attrType}_attributes/$blockConfig[option_existing_attribute_id]", 'GET');
+                $existingAttrMatches = $existingAttr['response']['values']['caption'] === $blockConfig['option_admin_name'];
+                $existingAttrMatches = $existingAttrMatches && $existingAttr['response']['values']['data_type'] === $blockConfig['option_data_type'];
+                $existingAttrMatches = $existingAttrMatches && $existingAttr['response']['values']['suffix'] == $blockConfig['option_suffix'];
+                $multiValue = $blockConfig['option_data_type'] === 'L' && $blockConfig['option_lookup_options_control'] === 'checkbox_group'
+                  ? 't' : 'f';
+                $existingAttrMatches = $existingAttrMatches && $existingAttr['response']['values']['multi_value'] === $multiValue;
+                if ($blockConfig['option_data_type'] === 'L') {
+                  $existingAttrMatches = $existingAttrMatches && $blockConfig['option_lookup_options_terms'] === implode("\r\n", $existingAttr['response']['terms']);
+                }
+                if ($existingAttrMatches)
+                  // Nothing to update in main attribute.
+                  $updateAttribute = FALSE;
+                elseif ($attrAdmin) {
+                  // Need to update the main attribute and has admin rights.
+                  $updateAttribute = TRUE;
+                }
+                else {
+                  // Want to update the attribute, but can't as no rights.
+                  \Drupal::messenger()->addWarning(t('You do not have permission to save changes to the @name attribute.', ['@name' => $blockConfig['option_admin_name']]));
+                  $updateAttribute = FALSE;
+                }
+
+                $updateAttribute = $attrAdmin;
+                if ($updateMainAttribute) {
+                  $updateMainAttribute = !$matches;
+                }
+                if ($updateAttribute) {
                   $this->updateAttribute($attrType, $blockConfig, $entity->field_survey_id->value);
                 }
                 else {
