@@ -355,8 +355,6 @@ class SurveyStructure extends IndiciaRestClient {
                   \Drupal::messenger()->addWarning(t('You do not have permission to save changes to the @name attribute.', ['@name' => $blockConfig['option_admin_name']]));
                   $updateAttribute = FALSE;
                 }
-
-                $updateAttribute = $attrAdmin;
                 if ($updateMainAttribute) {
                   $updateMainAttribute = !$matches;
                 }
