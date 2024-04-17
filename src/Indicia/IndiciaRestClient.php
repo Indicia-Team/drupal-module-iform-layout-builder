@@ -13,7 +13,11 @@ class IndiciaRestClient {
    *   Auth header to sign the request with a JWT token.
    */
   protected function getAuthHeader() {
-    $keyFile = PrivateStream::basePath() . '/rsa_private.pem';
+    $keyFile = PrivateStream::basePath() . '/private.key';
+    if (!file_exists($keyFile)) {
+      // Fall back on legacy setup.
+      $keyFile = PrivateStream::basePath() . '/rsa_private.pem';
+    }
     if (!file_exists($keyFile)) {
       \Drupal::messenger()->addError(t('Incorrect configuration - Iform layout builder needs a private key file in the Drupal private file system.'));
       return '';

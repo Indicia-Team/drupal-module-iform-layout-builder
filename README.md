@@ -39,16 +39,16 @@ RSA private/public key pair, here are a couple of methods that have been tested 
 Layout Builder:
 
 ```bash
-$ openssl genrsa -des3 -out rsa_private.pem 2048
-$ openssl rsa -in rsa_private.pem -pubout > rsa_public.pub
+$ openssl genrsa -des3 -out private.key 2048
+$ openssl rsa -in private.key -pubout > public.key
 ```
 Or on Windows from Git bash:
 ```bash
-winpty openssl genpkey -algorithm RSA -out rsa_private.pem -pkeyopt rsa_keygen_bits:2048
-winpty openssl rsa -pubout -in rsa_private.pem -out rsa_public.pem
+winpty openssl genpkey -algorithm RSA -out private.key -pkeyopt rsa_keygen_bits:2048
+winpty openssl rsa -pubout -in private.key -out rsa_public.pem
 ```
 
-This will create 2 files, rsa_private.pem and rsa_public.key. Save rsa_private.pem in the Drupal
+This will create 2 files, private.key and rsa_public.key. Save private.key in the Drupal
 private file system folder you created earlier.
 
 The contents of rsa_public.key needs to be saved into the website registration on the warehouse.
