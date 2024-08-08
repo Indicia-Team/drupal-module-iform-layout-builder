@@ -1,9 +1,9 @@
 <?php
 
-use Drupal\Core\Config\FileStorage;
-use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\field\Entity\FieldConfig;
 use Drupal\Component\Serialization\Yaml;
+use Drupal\Core\Config\FileStorage;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Adds configuration for the RESTful resource for reading a survey form.
@@ -52,10 +52,10 @@ function iform_layout_builder_update_9200() {
   ));
   $field = FieldConfig::create($configSettings);
   $field->save();
-  $properties = array(
+  $properties = [
     'targetEntityType' => 'node',
     'bundle' => 'iform_layout_builder_form'
-  );
+  ];
   if ($formDisplays = \Drupal::entityTypeManager()->getStorage('entity_form_display')->loadByProperties($properties)) {
     foreach ($formDisplays as $formDisplay) {
       $formDisplay->setComponent('field_sample_method_id', [

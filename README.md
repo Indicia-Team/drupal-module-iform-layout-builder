@@ -54,7 +54,7 @@ private file system folder you created earlier.
 The contents of rsa_public.key needs to be saved into the website registration on the warehouse.
 
 Also on the website registration on the warehouse, ensure that the website URL is set correctly,
-e.g. https://www.example.com/
+e.g. https://www.example.com/.
 
 ## Getting Started
 
