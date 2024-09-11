@@ -1,4 +1,10 @@
 <?php
+
+/**
+ * @file
+ * Integrates Indicia form functionality into the Drupal Layout Builder.
+ */
+
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\EntityInterface;
