@@ -175,10 +175,16 @@ class DataEntryMapBlock extends IndiciaControlBlockBase {
       $presetLayers[] = 'osm';
       sort($presetLayers);
     }
-    $ctrlOptions = array(
+    else {
+      // Convert block config format to simple array of layers.
+      $presetLayers = array_keys(array_filter($presetLayers, function ($v) {
+        return $v !== 0;
+      }));
+    }
+    $ctrlOptions = [
       'readAuth' => $readAuth,
       'presetLayers' => $presetLayers,
-      'editLayer' => true,
+      'editLayer' => TRUE,
       'layers' => [],
       'initial_lat' => $config->get('map_centroid_lat'),
       'initial_long' => $config->get('map_centroid_long'),
@@ -187,7 +193,7 @@ class DataEntryMapBlock extends IndiciaControlBlockBase {
       'height' => '500',
       'standardControls' => ['layerSwitcher', 'panZoomBar', 'fullscreen'],
       'rememberPos' => FALSE,
-    );
+    ];
     if (isset($blockConfig['option_graticule']) && $blockConfig['option_graticule'] === 1) {
       $ctrlOptions[] = 'graticule';
     }
@@ -215,8 +221,8 @@ class DataEntryMapBlock extends IndiciaControlBlockBase {
       '#markup' => new FormattableMarkup($ctrl, []),
       '#attached' => [
         'library' => [
-          'iform_layout_builder/block.data_entry.map'
-        ]
+          'iform_layout_builder/block.data_entry.map',
+        ],
       ],
       '#cache' => [
         // No cache please.
