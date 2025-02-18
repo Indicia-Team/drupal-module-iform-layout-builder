@@ -40,7 +40,7 @@ class IndiciaFormLayoutListResource extends ResourceBase {
       $plugin_id,
       $plugin_definition,
       $container->getParameter('serializer.formats'),
-      $container->get('logger.factory')->get('rest'),
+      $container->get('logger.factory')->get('iform_layout_builder'),
       $container->get('entity_type.manager'),
       $container->get('path_alias.manager'),
     );
