@@ -41,7 +41,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       $plugin_id,
       $plugin_definition,
       $container->getParameter('serializer.formats'),
-      $container->get('logger.factory')->get('rest'),
+      $container->get('logger.factory')->get('iform_layout_builder'),
       $container->get('entity_type.manager'),
       $container->get('path_alias.manager'),
     );
@@ -289,9 +289,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
   private function addSrefSystemControl(array $fieldConfig, array &$regions, $region, $weight) {
     $systems = \Drupal::config('iform.settings')->get('spatial_systems');
     $systemList = explode(',', $systems);
-    if (!empty($fieldConfig['system']) && array_key_exists($fieldConfig['system'], $systemList)) {
+    if (!empty($fieldConfig['system']) && in_array($fieldConfig['system'], $systemList)) {
       // Replace array with single chosen value.
-      $systemList = $fieldConfig['system'];
+      $systemList = [$fieldConfig['system']];
     }
     if (count($systemList) === 1) {
       // Single coordinate system, so embed a hidden.
@@ -360,7 +360,21 @@ class IndiciaFormLayoutResource extends ResourceBase {
    */
   private function formatSingleSpeciesControl(array &$fieldConfig) {
     if (empty($fieldConfig['scratchpad_list_id'])) {
-      $fieldConfig['taxon_list_id'] = (integer) \Drupal::config('iform.settings')->get('master_checklist_id');
+      if (!empty($fieldConfig['taxon_group_id'])) {
+        // If limited to a taxon group within the list, then switch to
+        // embedding the list rather thatn the list ID as the app doesn't do
+        // filtering.
+        $fieldConfig['limit_taxa_to'] = $this->getTaxonGroupTaxonNames(
+          \Drupal::config('iform.settings')->get('master_checklist_id'),
+          $fieldConfig['taxon_group_id'],
+          TRUE
+        );
+      }
+      else {
+        // Entire master list so don't embed it, the app needs to fetch using
+        // the ID.
+        $fieldConfig['taxon_list_id'] = (integer) \Drupal::config('iform.settings')->get('master_checklist_id');
+      }
     }
     else {
       $fieldConfig['limit_taxa_to'] = $this->getScratchpadTaxonNames($fieldConfig['scratchpad_list_id'], TRUE);
@@ -420,38 +434,50 @@ class IndiciaFormLayoutResource extends ResourceBase {
    *   need to be inserted into the grid.
    */
   private function formatSpeciesListControl(array &$fieldConfig, array $gridCustomAttributes) {
-    if ($fieldConfig['species_list_mode'] === 'scratchpadList') {
-      $fieldConfig['preload_taxa'] = $this->getScratchpadTaxonNames($fieldConfig['preloaded_scratchpad_list_id'], TRUE);
-      // Unset irrelevant options for this mode.
-      unset($fieldConfig['species_to_add_list_type']);
-      unset($fieldConfig['additional_species_scratchpad_list_id']);
-      // Tidy as bool.
-      $fieldConfig['allow_additional_species'] = !empty($fieldConfig['allow_additional_species']);
-      if ($fieldConfig['allow_additional_species']) {
-        $speciesExtraInfo = [
-          'taxon_list_id' => (integer) \Drupal::config('iform.settings')->get('master_checklist_id'),
-        ];
-      }
-    }
-    else {
-      // Start with an empty list.
+    $masterChecklistId = (integer) \Drupal::config('iform.settings')->get('master_checklist_id');
+    if ($fieldConfig['species_list_mode'] === 'empty') {
+      // Starting with empty list, so force this option.
       $fieldConfig['allow_additional_species'] = TRUE;
-      if ($fieldConfig['species_to_add_list_type'] === 'scratchpadList') {
-        // Attach the loaded scratchpad list to the species input control in
-        // gridCustomAttributes.
-        $speciesExtraInfo = [
-          'limit_taxa_to' => $this->getScratchpadTaxonNames($fieldConfig['additional_species_scratchpad_list_id'], FALSE),
-        ];
-      }
-      elseif ($fieldConfig['species_to_add_list_type'] === 'all') {
-        $speciesExtraInfo = [
-          'taxon_list_id' => \Drupal::config('iform.settings')->get('master_checklist_id'),
-        ];
-      }
       // Unset irrelevant options for this mode.
       unset($fieldConfig['row_inclusion_mode']);
-      unset($fieldConfig['allow_additional_species']);
       unset($fieldConfig['preloaded_scratchpad_list_id']);
+      unset($fieldConfig['preloaded_taxon_group_id']);
+    }
+    else {
+      // Starting with a preloaded list.
+      if ($fieldConfig['species_list_mode'] === 'scratchpadList') {
+        $fieldConfig['preload_taxa'] = $this->getScratchpadTaxonNames($fieldConfig['preloaded_scratchpad_list_id'], TRUE);
+      }
+      elseif ($fieldConfig['species_list_mode'] === 'taxonGroup') {
+        $fieldConfig['preload_taxa'] = $this->getTaxonGroupTaxonNames($masterChecklistId, $fieldConfig['preloaded_taxon_group_id'], TRUE);
+      }
+      // Tidy as bool.
+      $fieldConfig['allow_additional_species'] = !empty($fieldConfig['allow_additional_species']);
+      if (!$fieldConfig['allow_additional_species']) {
+        unset($fieldConfig['species_to_add_list_type']);
+      }
+    }
+    if ($fieldConfig['species_to_add_list_type'] === 'scratchpadList') {
+      $speciesExtraInfo = [
+        'limit_taxa_to' => $this->getScratchpadTaxonNames($fieldConfig['additional_species_scratchpad_list_id'], FALSE),
+      ];
+      unset($fieldConfig['additional_species_taxon_group_id']);
+    }
+    elseif ($fieldConfig['species_to_add_list_type'] === 'taxonGroup') {
+      $speciesExtraInfo = [
+        'limit_taxa_to' => $this->getTaxonGroupTaxonNames($masterChecklistId, $fieldConfig['additional_species_taxon_group_id'], FALSE),
+      ];
+      unset($fieldConfig['additional_species_scratchpad_list_id']);
+    }
+    elseif ($fieldConfig['species_to_add_list_type'] === 'all') {
+      $speciesExtraInfo = [
+        'taxon_list_id' => $masterChecklistId,
+      ];
+    }
+    // Cleanup unnecessary options.
+    if (empty($fieldConfig['species_to_add_list_type']) || $fieldConfig['species_to_add_list_type'] === 'all') {
+      unset($fieldConfig['additional_species_scratchpad_list_id']);
+      unset($fieldConfig['additional_species_taxon_group_id']);
     }
     $fieldConfig['controls'] = array_merge(
       $this->getGridControls($fieldConfig, FALSE, $speciesExtraInfo ?? []),
@@ -467,8 +493,42 @@ class IndiciaFormLayoutResource extends ResourceBase {
   }
 
   /**
+   * Retrieve the list of taxon names in a taxon group.
+   *
+   * @param int $taxonListId
+   *   ID of the list to search in.
+   * @param int $taxonGroupId
+   *   ID of the group to retrieve.
+   * @param bool $preferred
+   *   True to limit to only return preferred names.
+   *
+   * @return array
+   *   List of taxon name data loaded from the warehouse.
+   */
+  private function getTaxonGroupTaxonNames($taxonListId, $taxonGroupId, $preferred) {
+    \iform_load_helpers(['report_helper']);
+    $connection = iform_get_connection_details();
+    $readAuth = \report_helper::get_read_auth($connection['website_id'], $connection['password']);
+    return \report_helper::get_report_data([
+      'dataSource' => 'library/taxa/taxa_for_taxon_group',
+      'extraParams' => [
+        'taxon_list_id' => $taxonListId,
+        'taxon_group_id' => $taxonGroupId,
+        // @todo Allow configuration of language codes.
+        'language_codes' => 'lat,eng',
+        'preferred' => $preferred ? 't' : 'f',
+        'taxattrs' => preg_match('/^[0-9]+(,[0-9]+)*$/', $_GET['taxon_attributes'] ?? '') ? $_GET['taxon_attributes'] : '',
+        // @todo Extra filter options, e.g. include children.
+      ],
+      'readAuth' => $readAuth,
+    ]);
+  }
+
+  /**
    * Retrieve the full list of taxon names for a scratchpad list.
    *
+   * @param int $scratchpadId
+   *   ID of the scratchpad list to retrieve.
    * @param bool $preferred
    *   True to limit to only return preferred names.
    *

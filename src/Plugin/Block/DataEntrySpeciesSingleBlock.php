@@ -41,6 +41,27 @@ class DataEntrySpeciesSingleBlock extends IndiciaControlBlockBase {
           'valueField' => 'id',
           'captionField' => 'title',
         ],
+        '#attributes' => [
+          'id' => 'option_scratchpadListId',
+        ],
+      ],
+      'taxonGroupId' => [
+        '#title' => 'Limit species available to taxon group',
+        '#description' => 'Only allow species from this group to be selected',
+        '#type' => 'select',
+        '#empty_option' => '-Please select-',
+        'populateOptions' => [
+          'table' => 'taxon_group',
+          'valueField' => 'id',
+          'captionField' => 'title',
+        ],
+        '#states' => [
+          // Show this control when there is an option to add any species from
+          // the master checklist.
+          'visible' => [
+            ':input[id="option_scratchpadListId"]' => ['value' => ''],
+          ],
+        ],
       ],
     ];
   }
