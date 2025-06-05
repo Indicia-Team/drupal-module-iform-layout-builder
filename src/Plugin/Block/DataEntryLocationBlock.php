@@ -183,8 +183,9 @@ class DataEntryLocationBlock extends IndiciaControlBlockBase {
     if (!empty($blockConfig['option_locationTypeId'])) {
       $ctrlOptions['extraParams']['location_type_id'] = $blockConfig['option_locationTypeId'];
     }
-    if ($blockConfig['option_includeMySites'] === 1) {
-      $ctrlOptions['extraParams']['user_id'] = hostsite_get_user_field('indicia_user_id');
+    $userId = hostsite_get_user_field('indicia_user_id');
+    if ($blockConfig['option_includeMySites'] === 1 && !empty($userId)) {
+      $ctrlOptions['extraParams']['user_id'] = $userId;
     }
     if ($blockConfig['option_includeActivitySites'] === 1 && !empty($_GET['group_id'])) {
       $ctrlOptions['extraParams']['group_id'] = $_GET['group_id'];
@@ -210,8 +211,9 @@ class DataEntryLocationBlock extends IndiciaControlBlockBase {
     if (!empty($blockConfig['option_locationTypeId'])) {
       $ctrlOptions['extraParams']['group_id'] = $blockConfig['option_locationTypeId'];
     }
-    if ($blockConfig['option_includeMySites'] === 1) {
-      $ctrlOptions['extraParams']['user_id'] = hostsite_get_user_field('indicia_user_id');
+    $userId = hostsite_get_user_field('indicia_user_id');
+    if ($blockConfig['option_includeMySites'] === 1 && !empty($userId)) {
+      $ctrlOptions['extraParams']['user_id'] = $userId;
     }
     if ($blockConfig['option_includeActivitySites'] === 1 && !empty($_GET['group_id'])) {
       $ctrlOptions['extraParams']['group_id'] = $_GET['group_id'];
