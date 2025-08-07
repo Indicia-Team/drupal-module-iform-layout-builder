@@ -78,14 +78,22 @@ class IndiciaFormLayoutListResource extends ResourceBase {
           'href' => "$href/" . $node->id(),
           'is_published' => $node->isPublished(),
         ];
-        if (array_key_exists($alias, $groupPages)) {
-          $formDetail['groups'] = $groupPages[$alias];
-        }
         $description = $node->body->value;
         if ($description) {
           $formDetail['description'] = strip_tags($description);
         }
-        $data[] = $formDetail;
+        if (array_key_exists($alias, $groupPages)) {
+          foreach ($groupPages[$alias] as $groupInfo) {
+            $groupLinkedFormDetail = array_merge($formDetail, [
+              'groups' => [$groupInfo['title']],
+              'href' => "$formDetail[href]/$groupInfo[id]",
+            ]);
+            $data[] = $groupLinkedFormDetail;
+          }
+        }
+        else {
+          $data[] = $formDetail;
+        }
       }
     }
     $response = new ResourceResponse($data);
@@ -93,6 +101,13 @@ class IndiciaFormLayoutListResource extends ResourceBase {
     return $response;
   }
 
+  /**
+   * Retrieve info about group pages linked to groups for the current user.
+   *
+   * @return array
+   *   List of pages, keyed by path, with each page containing an array of
+   *   groups with 'id' and 'title'.
+   */
   private function getGroupPages() {
     $user = $this->entityTypeManager->getStorage('user')->load(\Drupal::currentUser()->id());
     $conn = iform_get_connection_details();
@@ -109,7 +124,7 @@ class IndiciaFormLayoutListResource extends ResourceBase {
       if (!array_key_exists($page['path'], $groupPages)) {
         $groupPages[$page['path']] = [];
       }
-      $groupPages[$page['path']][] = $page['group_title'];
+      $groupPages[$page['path']][] = ['id' => $page['id'], 'title' => $page['group_title']];
     }
     return $groupPages;
   }

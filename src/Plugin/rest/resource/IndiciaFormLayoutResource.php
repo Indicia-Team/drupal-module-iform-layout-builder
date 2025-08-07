@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   id = "indicia_form_layout",
  *   label = @Translation("Indicia form layout"),
  *   uri_paths = {
- *     "canonical" = "/iform_layout_builder/form_layout/{id}"
+ *     "canonical" = "/iform_layout_builder/form_layout/{id}/{group_id}"
  *   }
  * )
  */
@@ -48,15 +48,33 @@ class IndiciaFormLayoutResource extends ResourceBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function routes() {
+    $collection = parent::routes();
+    // Add defaults for optional group ID parameter.
+    $defaults = [
+      'group_id' => 0,
+    ];
+    foreach ($collection->all() as $route) {
+      $route->addDefaults($defaults);
+    }
+    return $collection;
+  }
+
+  /**
    * Responds to GET requests.
    *
    * @param int $id
    *   The ID of the node to fetch.
+   * @param int $group_id
+   *   The ID of the group to link the form to. Defaults to 0 which means no
+   *   group.
    *
    * @return \Drupal\rest\ResourceResponse
    *   The response containing the form object.
    */
-  public function get($id) {
+  public function get($id, $group_id) {
     $node = $this->entityTypeManager->getStorage('node')->load($id);
     if (!$node || $node->getType() !== 'iform_layout_builder_form') {
       throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found');
@@ -223,6 +241,13 @@ class IndiciaFormLayoutResource extends ResourceBase {
           'default_value' => trim($this->aliasManager->getAliasByPath("/node/$id"), '/'),
         ]
       ];
+      if (!empty($group_id)) {
+        $allControls[] = [
+          'control_type' => 'hidden',
+          'field_name' => 'sample:group_id',
+          'default_value' => (integer) $group_id,
+        ];
+      }
       if ($node->field_sample_method_id->value) {
         $allControls[] = [
           'control_type' => 'hidden',
