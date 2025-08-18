@@ -63,6 +63,10 @@ class DataEntrySpeciesListBlock extends IndiciaSpeciesListBlockBase {
     $ctrlOptions['subSamplePerRow'] = $ctrlOptions['spatialRefPerRow'];
     $ctrlOptions['speciesControlToUseSubSamples'] = $ctrlOptions['spatialRefPerRow'];
     $ctrlOptions['spatialRefPerRowUseFullscreenMap'] = $ctrlOptions['spatialRefPerRow'];
+    \data_entry_helper::build_species_autocomplete_item_function([
+      'speciesIncludeBothNames' => TRUE,
+      'speciesIncludeTaxonGroup' => TRUE,
+    ]);
     // Set occurrence attribute labels from custom attribute block config.
     foreach ($node->get('layout_builder__layout')->getSections() as $section) {
       foreach ($section->getComponents() as $component) {

@@ -94,6 +94,10 @@ class DataEntrySpeciesMultiplaceBlock extends IndiciaSpeciesListBlockBase {
       }
       $ctrlOptions = $this->getSpeciesChecklistControlOptions($blockConfig);
       $ctrlOptions['spatialSystem'] = $blockConfig["option_spatialSystem"];
+      \data_entry_helper::build_species_autocomplete_item_function([
+        'speciesIncludeBothNames' => TRUE,
+        'speciesIncludeTaxonGroup' => TRUE,
+      ]);
       // Copy read auth tokens due to inconsistency in way standard species
       // checklist and multiplace version accept readAuth.
       $ctrlOptions['readAuth'] = [
