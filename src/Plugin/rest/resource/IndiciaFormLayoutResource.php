@@ -83,6 +83,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
       'id' => $node->id(),
       'title' => $node->getTitle(),
       'survey_id' => (integer) $node->field_survey_id->value,
+      'group_id' => (integer) $group_id,
       'type' => $this->getFormTypeLabel($node),
       'subtype' => NULL,
       'created_by_uid' => (integer) $node->getOwnerID(),

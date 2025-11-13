@@ -86,6 +86,7 @@ class IndiciaFormLayoutListResource extends ResourceBase {
           foreach ($groupPages[$alias] as $groupInfo) {
             $groupLinkedFormDetail = array_merge($formDetail, [
               'groups' => [$groupInfo['title']],
+              'group_id' => $groupInfo['id'],
               'href' => "$formDetail[href]/$groupInfo[id]",
             ]);
             $data[] = $groupLinkedFormDetail;
