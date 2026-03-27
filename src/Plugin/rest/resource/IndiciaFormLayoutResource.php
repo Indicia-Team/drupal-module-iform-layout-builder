@@ -128,6 +128,9 @@ class IndiciaFormLayoutResource extends ResourceBase {
           $blockConfig['data_type'] = $this->getVerboseDataType($blockConfig['option_data_type']);
         }
         $fieldConfig['control_type'] = $this->getControlType($blockConfig);
+        if (($blockConfig['data_type'] ?? NULL) === 'text') {
+          $fieldConfig['input_type'] = $this->getTextInputType($blockConfig);
+        }
 
         if (!$node->isPublished() && substr($fieldConfig['type'], -17) === '_custom_attribute') {
           $this->addUnpublishedAttrInfo($blockConfig);
@@ -646,7 +649,7 @@ class IndiciaFormLayoutResource extends ResourceBase {
     if (!empty($blockConfig['data_type'])) {
       switch ($blockConfig['data_type']) {
         case 'text':
-          return empty($blockConfig['option_text_options_control']) ? 'text' : str_replace('text_input', 'text', $blockConfig['option_text_options_control']);
+          return $this->getTextControlType($blockConfig);
 
         case 'boolean':
           return 'checkbox';
@@ -690,6 +693,39 @@ class IndiciaFormLayoutResource extends ResourceBase {
           return NULL;
       }
     }
+  }
+
+  /**
+   * Get the control type for text attributes.
+   *
+   * @param array $blockConfig
+   *   Saved block configuration.
+   *
+   * @return string
+   *   text or textarea.
+   */
+  private function getTextControlType(array $blockConfig) {
+    return $this->getTextInputType($blockConfig) === 'textarea' ? 'textarea' : 'text';
+  }
+
+  /**
+   * Get configured text input type with backward-compatible fallback.
+   *
+   * @param array $blockConfig
+   *   Saved block configuration.
+   *
+   * @return string
+   *   One of text, email, url, time.
+   */
+  private function getTextInputType(array $blockConfig) {
+    $inputType = $blockConfig['option_text_options_control'] ?? 'text';
+    if ($inputType === 'text_input' || $inputType === 'textarea') {
+      return 'text';
+    }
+    if (!in_array($inputType, ['text', 'email', 'url', 'time'])) {
+      return 'text';
+    }
+    return $inputType;
   }
 
   /**

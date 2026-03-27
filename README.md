@@ -73,3 +73,16 @@ Drupal 8.5: https://www.drupal.org/docs/8/core/modules/layout-builder/layout-bui
 * Save the layout and you now have a very basic recording form.
 
 Custom list of species can be configured using the scratchpad editing prebuilt forms.
+
+## Custom Attribute Text Input Types
+
+When adding a sample or occurrence custom attribute with the Text data type, you can choose a
+Text input type in block configuration. Supported values are Text, Email, URL, Time, and Multiple
+lines.
+
+For single-line text controls, the selected value maps to HTML5 input types (`text`, `email`,
+`url`, `time`). Multiple lines renders a textarea.
+
+The form layout REST endpoint includes an `input_type` value for text custom attributes so mobile
+clients can render the correct input behavior. Existing forms default to `input_type=text` when no
+explicit input type has been configured.

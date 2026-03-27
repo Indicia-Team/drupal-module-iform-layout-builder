@@ -100,12 +100,16 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
         ],
       ],
       'text_options_control' => [
-        '#title' => 'Text control options',
+        '#title' => 'Text input type',
         '#type' => 'select',
         '#options' => [
-          'text_input' => 'Single line',
+          'text' => 'Text',
+          'email' => 'Email',
+          'url' => 'URL',
+          'time' => 'Time',
           'textarea' => 'Multiple lines',
         ],
+        '#default_value' => 'text',
         '#states' => [
           // Show this control only if the attribute type Text is selected above.
           'visible' => [
@@ -248,9 +252,10 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
       $fieldname = "{$attrPrefix}Attr:$blockConfig[option_existing_attribute_id]";
     }
     $ctrlName = 'text_input';
+    $textInputType = $this->getTextInputType($blockConfig);
     switch ($blockConfig['option_data_type']) {
       case 'T':
-        $ctrlName = empty($blockConfig['option_text_options_control']) ? 'text_input' : $blockConfig['option_text_options_control'];
+        $ctrlName = $textInputType === 'textarea' ? 'textarea' : 'text_input';
         break;
 
       case 'B':
@@ -266,6 +271,9 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
       'validation' => [],
       'lockable' => !empty($blockConfig["option_lockable"]) ? TRUE : FALSE,
     ];
+    if ($blockConfig['option_data_type'] === 'T' && $ctrlName === 'text_input') {
+      $ctrlOptions['attributes'] = ['type' => $textInputType];
+    }
     // HTML5 number type for numerics.
     if ($blockConfig['option_data_type'] === 'I' || $blockConfig['option_data_type'] === 'F') {
       $ctrlOptions['attributes'] = ['type' => 'number'];
@@ -321,4 +329,25 @@ abstract class IndiciaCustomAttributeBlockBase extends IndiciaControlBlockBase {
     }
     return \data_entry_helper::$ctrlName($ctrlOptions);
   }
+
+  /**
+   * Get configured text input type with backward-compatible fallback.
+   *
+   * @param array $blockConfig
+   *   Block configuration.
+   *
+   * @return string
+   *   One of text, email, url, time, textarea.
+   */
+  private function getTextInputType(array $blockConfig) {
+    $inputType = $blockConfig['option_text_options_control'] ?? 'text';
+    if ($inputType === 'text_input') {
+      $inputType = 'text';
+    }
+    if (!in_array($inputType, ['text', 'email', 'url', 'time', 'textarea'])) {
+      $inputType = 'text';
+    }
+    return $inputType;
+  }
+
 }
