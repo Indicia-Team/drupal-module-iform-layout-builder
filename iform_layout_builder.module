@@ -5,7 +5,6 @@
  * Integrates Indicia form functionality into the Drupal Layout Builder.
  */
 
-use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\iform_layout_builder\Indicia\SurveyStructure;
@@ -24,8 +23,9 @@ function iform_layout_builder_library_info_build() {
   $node = \Drupal::routeMatch()->getParameter('node');
 
   if ($node) {
-    $jsFile = PublicStream::basePath() . '/indicia/js/node.' . $node->id() . '.js';
-    $cssFile = PublicStream::basePath() . '/indicia/css/node.' . $node->id() . '.css';
+    $publicFileSystemPath = \Drupal::service('file_system')->realpath('public://');
+    $jsFile = $publicFileSystemPath . '/indicia/js/node.' . $node->id() . '.js';
+    $cssFile = $publicFileSystemPath . '/indicia/css/node.' . $node->id() . '.css';
     if (file_exists($jsFile) || file_exists($cssFile)) {
       $library = [
         'version' => '1.x',
@@ -56,9 +56,11 @@ function iform_layout_builder_library_info_build() {
  */
 function iform_layout_builder_preprocess_node(&$variables) {
   $node = $variables['node'];
+  $publicFileSystemPath = \Drupal::service('file_system')->realpath('public://');
 
-  if (file_exists(PublicStream::basePath() . '/indicia/js/node.' . $node->id() . '.js')
-      || file_exists(PublicStream::basePath() . '/indicia/css/node.' . $node->id() . '.css')) {
+  if ($publicFileSystemPath &&
+      (file_exists($publicFileSystemPath . '/indicia/js/node.' . $node->id() . '.js')
+      || file_exists($publicFileSystemPath . '/indicia/css/node.' . $node->id() . '.css'))) {
     $variables['#attached']['library'][] = 'iform_layout_builder/my_module_node_custom_' . $node->id();
   }
 }
