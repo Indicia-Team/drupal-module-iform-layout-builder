@@ -204,12 +204,12 @@ class DataEntryLocationBlock extends IndiciaControlBlockBase {
       'extraParams' => $readAuth,
       // As we don't have an easy way to handle more values like species data.
       'numValues' => 200,
-      // Allow user to save to My Sites
+      // Allow user to save to My Sites.
       'allowCreate' => $blockConfig['option_allowSaveToMySites'] === 1,
       'useLocationName' => $blockConfig['option_saveUnfoundNameAsAdhoc'] === 1,
     ];
     if (!empty($blockConfig['option_locationTypeId'])) {
-      $ctrlOptions['extraParams']['group_id'] = $blockConfig['option_locationTypeId'];
+      $ctrlOptions['extraParams']['location_type_id'] = $blockConfig['option_locationTypeId'];
     }
     $userId = hostsite_get_user_field('indicia_user_id');
     if ($blockConfig['option_includeMySites'] === 1 && !empty($userId)) {
