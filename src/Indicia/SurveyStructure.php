@@ -156,7 +156,7 @@ class SurveyStructure extends IndiciaRestClient {
       if (empty($blockConfig['option_child_sample_attribute']) && $node->field_sample_method_id->value) {
         $submission['values']['restrict_to_sample_method_id'] = $node->field_sample_method_id->value;
       }
-      elseif (!empty($blockConfig['child_sample_attribute']) && $node->field_child_sample_method_id->value) {
+      elseif (!empty($blockConfig['option_child_sample_attribute']) && $node->field_child_sample_method_id->value) {
         $submission['values']['restrict_to_sample_method_id'] = $node->field_child_sample_method_id->value;
       }
     }
@@ -166,7 +166,8 @@ class SurveyStructure extends IndiciaRestClient {
       }
     }
     $endpoint = "{$attrEntityName}_attributes_websites";
-    $existingAttrsWebsiteId = $blockConfig['option_existing_attributes_website_id'] ?? $existingAttr["{attrEntityName}_attributes_website_id"] ?? NULL;
+    $attrsWebsiteIdField = "{$attrEntityName}_attributes_website_id";
+    $existingAttrsWebsiteId = $blockConfig['option_existing_attributes_website_id'] ?? $existingAttr[$attrsWebsiteIdField] ?? NULL;
     if (!empty($existingAttrsWebsiteId)) {
       // PUT to update.
       $endpoint .= "/$existingAttrsWebsiteId";
@@ -241,6 +242,7 @@ class SurveyStructure extends IndiciaRestClient {
     }
     // If no survey, but unpublished, we allow it to proceed only to fetch the
     // existing custom attribute details from the warehouse.
+    $config = \Drupal::config('iform.settings');
     $existingAttrs = [
       'occurrence' => $this->getExistingCustomAttributesForSurvey('occurrence', $entity->field_survey_id->value),
       'sample' => $this->getExistingCustomAttributesForSurvey('sample', $entity->field_survey_id->value),
@@ -292,6 +294,7 @@ class SurveyStructure extends IndiciaRestClient {
               $existingAttrWebsiteLink = $this->getRestResponse("{$attrType}_attributes_websites", 'GET', NULL, [
                 "{$attrType}_attribute_id" => $blockConfig['option_existing_attribute_id'],
                 "restrict_to_survey_id" => $entity->field_survey_id->value,
+                'website_id' => $config->get('website_id'),
               ]);
               if (count($existingAttrWebsiteLink['response']) > 0) {
                 $blockConfig['option_existing_attributes_website_id'] = $existingAttrWebsiteLink['response'][0]['values']['id'];
