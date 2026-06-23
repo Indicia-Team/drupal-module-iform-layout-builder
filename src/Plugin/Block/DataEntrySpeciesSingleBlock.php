@@ -92,6 +92,33 @@ class DataEntrySpeciesSingleBlock extends IndiciaControlBlockBase {
     ];
     if (!empty($blockConfig['option_scratchpadListId'])) {
       $ctrlOptions['extraParams']['scratchpad_list_id'] = $blockConfig['option_scratchpadListId'];
+      $connection = iform_get_connection_details();
+      $readAuth = \data_entry_helper::get_read_auth($connection['website_id'], $connection['password']);
+      $response = \data_entry_helper::get_population_data([
+        'report' => 'library/taxa/taxa_for_scratchpad',
+        'extraParams' => $readAuth + [
+          'scratchpad_list_id' => $blockConfig['option_scratchpadListId'],
+          'wantCount' => 1,
+          'wantRecords' => 1,
+          'limit' => 1,
+          'preferred' => 't',
+        ],
+      ]);
+      if (isset($response['count']) && $response['count'] === 1) {
+        $output = \data_entry_helper::hidden_text([
+          'fieldname' => $ctrlOptions['fieldname'],
+          'default' => $response['records'][0]['taxa_taxon_list_id'],
+        ]);
+        $taxon = '<em>' . $response['records'][0]['taxon'] . '</em>';
+        if (!empty($response['records'][0]['default_common_name'])) {
+          $taxon = $response['records'][0]['default_common_name'] . ' (' . $taxon . ')';
+        }
+        global $indicia_templates;
+        $output .= str_replace('{message}', \lang::get('You are entering a record of {1}', $taxon), $indicia_templates['messageBox']);
+        return [
+          '#markup' => new FormattableMarkup($output, []),
+        ];
+      }
     }
     unset($configFieldList['taxonListId']);
     $this->applyBlockConfigToControl($blockConfig, $ctrlOptions);
