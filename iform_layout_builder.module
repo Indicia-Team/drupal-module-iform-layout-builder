@@ -22,7 +22,7 @@ use Drupal\Component\Serialization\Yaml;
 function iform_layout_builder_library_info_build() {
   $node = \Drupal::routeMatch()->getParameter('node');
 
-  if ($node) {
+  /*if ($node) {
     $publicFileSystemPath = \Drupal::service('file_system')->realpath('public://');
     $jsFile = $publicFileSystemPath . '/indicia/js/node.' . $node->id() . '.js';
     $cssFile = $publicFileSystemPath . '/indicia/css/node.' . $node->id() . '.css';
@@ -43,9 +43,10 @@ function iform_layout_builder_library_info_build() {
       $libraries = [
         'my_module_node_custom_' . $node->id() => $library,
       ];
+      hostsite_show_message("Custom library for node {$node->id()} added - " . var_export($libraries, TRUE), 'status');
       return $libraries;
     }
-  }
+  }*/
   return [];
 }
 
