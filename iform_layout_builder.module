@@ -21,14 +21,15 @@ use Drupal\Component\Serialization\Yaml;
  */
 function iform_layout_builder_library_info_build() {
   $node = \Drupal::routeMatch()->getParameter('node');
-
-  /*if ($node) {
+  // If a valid iform_layout_builder node, check for a custom JS file.
+  if ($node && in_array($node->bundle(), ['iform_layout_builder_form', 'iform_layout_builder_report'])) {
     $publicFileSystemPath = \Drupal::service('file_system')->realpath('public://');
     $jsFile = $publicFileSystemPath . '/indicia/js/node.' . $node->id() . '.js';
     $cssFile = $publicFileSystemPath . '/indicia/css/node.' . $node->id() . '.css';
+    $version = iform_get_node_specific_library_version();
     if (file_exists($jsFile) || file_exists($cssFile)) {
       $library = [
-        'version' => '1.x',
+        'version' => $version,
       ];
       if (file_exists($jsFile)) {
         $library['js'] = [
@@ -43,10 +44,9 @@ function iform_layout_builder_library_info_build() {
       $libraries = [
         'my_module_node_custom_' . $node->id() => $library,
       ];
-      hostsite_show_message("Custom library for node {$node->id()} added - " . var_export($libraries, TRUE), 'status');
       return $libraries;
     }
-  }*/
+  }
   return [];
 }
 
