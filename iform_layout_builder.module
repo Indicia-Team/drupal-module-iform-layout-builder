@@ -394,7 +394,7 @@ function iform_layout_builder_node_view(array &$build, EntityInterface $entity,
     \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
   if ($entity->bundle() === 'iform_layout_builder_form' && $view_mode !== 'search_index') {
     iform_load_helpers(['data_entry_helper']);
-    \data_entry_helper::enable_validation('indicia-entry-form');
+    \data_entry_helper::enableValidation('indicia-entry-form');
     $class = $entity->field_template->value === '1' ? ' class="form-template alert alert-warning"' : '';
     $msg = $entity->field_template->value === '1' ? '<div class="alert alert-danger">' .
       t('This is a form template and should not be used to submit records') . '</div>' : '';
