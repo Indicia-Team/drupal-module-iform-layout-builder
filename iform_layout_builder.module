@@ -26,11 +26,8 @@ function iform_layout_builder_library_info_build() {
     $publicFileSystemPath = \Drupal::service('file_system')->realpath('public://');
     $jsFile = $publicFileSystemPath . '/indicia/js/node.' . $node->id() . '.js';
     $cssFile = $publicFileSystemPath . '/indicia/css/node.' . $node->id() . '.css';
-    $version = iform_get_node_specific_library_version();
     if (file_exists($jsFile) || file_exists($cssFile)) {
-      $library = [
-        'version' => $version,
-      ];
+      $library = [];
       if (file_exists($jsFile)) {
         $library['js'] = [
           "/" . hostsite_get_public_file_path() . '/indicia/js/node.' . $node->id() . '.js' => [],
