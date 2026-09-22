@@ -6,6 +6,6 @@ package: "Indicia"
 configure: iform_layout_builder.settings
 type: module
 dependencies:
-  - iform
-  - easy_login
-  - layout_builder
+  - iform:iform
+  - indicia_features:easy_login
+  - drupal:layout_builder
